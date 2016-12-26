@@ -249,6 +249,8 @@ public class NxpNfcController {
 
         if(seName.equals(NxpConstants.UICC_ID)) {
             seId = NxpConstants.UICC_ID_TYPE;
+        } else if (seName.equals(NxpConstants.UICC2_ID)) {
+            seId = NxpConstants.UICC2_ID_TYPE;
         } else if (seName.equals(NxpConstants.SMART_MX_ID)) {
             seId = NxpConstants.SMART_MX_ID_TYPE;
         } else if (seName.equals(NxpConstants.HOST_ID)) {
@@ -383,11 +385,20 @@ public class NxpNfcController {
 
         //Temp for SE conversion
         String secureElement = null;
-        if(seName.startsWith("SIM"))
+        if((seName.equals("SIM")) || (seName.equals("SIM1"))) {
             secureElement = NxpConstants.UICC_ID;
+        } else if (seName.equals("SIM2")){
+            secureElement = NxpConstants.UICC2_ID;
+        } else if ((seName.equals("eSE1")) || (seName.equals("eSE"))){
+            secureElement = NxpConstants.SMART_MX_ID;
+        } else {
+            Log.e(TAG,"wrong Se name");
+        }
 
         if(secureElement.equals(NxpConstants.UICC_ID)) {
             seId = NxpConstants.UICC_ID_TYPE;
+        } else if (secureElement.equals(NxpConstants.UICC2_ID)) {
+            seId = NxpConstants.UICC2_ID_TYPE;
         } else if (secureElement.equals(NxpConstants.SMART_MX_ID)) {
             seId = NxpConstants.SMART_MX_ID_TYPE;
         } else if (secureElement.equals(NxpConstants.HOST_ID)) {
@@ -455,6 +466,7 @@ public class NxpNfcController {
         boolean isLast = false;
         boolean isDefault = false;
         String seName = null;
+        int seId=0;
 
         List<NQApduServiceInfo> apduServices = new ArrayList<NQApduServiceInfo>();
         try {
@@ -470,10 +482,18 @@ public class NxpNfcController {
                     isDefault = true;
                 }
 
-                if (NxpConstants.UICC_ID_TYPE == (apduServices.get(i).getSEInfo().getSeId())) {
+                seId = apduServices.get(i).getSEInfo().getSeId();
+                if( seId == -1) {
+                    Log.e(TAG,"Wrong SE ID (-1)");
+                    continue;
+                }
+                Log.e(TAG, " SE ID: " + seId);
+                if (NxpConstants.UICC_ID_TYPE == seId) {
+                    seName = "SIM";
+                } else if (NxpConstants.UICC2_ID_TYPE == seId) {
                     seName = "SIM";
                 } else {
-                    continue;
+                    Log.e(TAG,"Wrong SE ID");
                 }
 
                 if(DBG) Log.d(TAG, "getOffHostServices() : seName: " +seName + " apduServices.get(" + i + ").toString(): "
@@ -512,10 +532,17 @@ public class NxpNfcController {
         boolean isDefault = true;
         int userId = UserHandle.myUserId();
         String seName = null;
+        int seId=0;
         try {
             apduService = mNfcControllerService.getDefaultOffHostService(userId, packageName);
-            if (NxpConstants.UICC_ID_TYPE == (apduService.getSEInfo().getSeId())) {
+            seId = apduService.getSEInfo().getSeId();
+	    Log.e(TAG," SE ID: " + seId);
+            if (NxpConstants.UICC_ID_TYPE == seId) {
                 seName = "SIM";
+            } else if (NxpConstants.UICC2_ID_TYPE == seId) {
+                seName = "SIM";
+            } else {
+                Log.e(TAG,"Wrong SE ID");
             }
 
             if(DBG) Log.d(TAG, "getDefaultOffHostService: seName: " + seName + " apduService.toString():" + apduService.toString());

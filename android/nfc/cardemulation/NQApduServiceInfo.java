@@ -705,6 +705,7 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
             dest.writeParcelable(null, flags);
         }
         dest.writeInt(mModifiable ? 1 : 0);
+        dest.writeInt(mServiceState);
     };
 
     public static final Parcelable.Creator<NQApduServiceInfo> CREATOR =
@@ -744,9 +745,11 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
                 }
             }
             boolean modifiable = source.readInt() != 0;
-            return new NQApduServiceInfo(info, onHost, description, staticNQAidGroups,
+            NQApduServiceInfo service = new NQApduServiceInfo(info, onHost, description, staticNQAidGroups,
                     dynamicNQAidGroups, requiresUnlock, bannerResource, uid,
                     settingsActivityName, seExtension, nfcid2Groups, drawable,modifiable);
+            service.setServiceState(CardEmulation.CATEGORY_OTHER, source.readInt());
+            return service;
         }
 
         @Override
