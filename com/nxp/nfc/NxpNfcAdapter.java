@@ -38,7 +38,7 @@ import android.util.Log;
 
 public final class NxpNfcAdapter {
     private static final String TAG = "NXPNFC";
-
+    private static int ALL_SE_ID_TYPE = 0x03;
     // Guarded by NfcAdapter.class
     static boolean sIsInitialized = false;
 
@@ -78,6 +78,7 @@ public final class NxpNfcAdapter {
                 Log.e(TAG, "could not retrieve NXP NFC service");
                 throw new UnsupportedOperationException();
             }
+            updateNxpSupportedSElist();
             sIsInitialized = true;
         }
         NxpNfcAdapter nxpAdapter = sNfcAdapters.get(adapter);
@@ -98,6 +99,46 @@ public final class NxpNfcAdapter {
             return null;
         }
         return INfcAdapter.Stub.asInterface(b);
+    }
+
+    /**
+     * NFC service dead - attempt best effort recovery
+     * @hide
+     */
+    private static void attemptDeadServiceRecovery(Exception e) {
+        Log.e(TAG, "Service dead - attempting to recover",e);
+        INfcAdapter service = getServiceInterface();
+        if (service == null) {
+            Log.e(TAG, "could not retrieve NFC service during service recovery");
+            // nothing more can be done now, sService is still stale, we'll hit
+            // this recovery path again later
+            return;
+        }
+        // assigning to sService is not thread-safe, but this is best-effort code
+        // and on a well-behaved system should never happen
+        sService = service;
+        sNxpService = getNxpNfcAdapterInterface();
+        return;
+    }
+
+    /** update NxpSupportedSElist
+    * @hide
+    */
+    private static void updateNxpSupportedSElist()
+    {
+        try {
+            byte[] fwVer = sNxpService.getFWVersion();
+            if(fwVer == null) {
+                throw new UnsupportedOperationException();
+            }
+            else if((fwVer[0] == NxpConstants.PN553_FW_MAJOR_NUM) && (fwVer[2] == NxpConstants.PN553_FW_ROM_VER)) {
+                ALL_SE_ID_TYPE |= NxpConstants.UICC2_ID_TYPE;
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "getFWVersion failed", e);
+            attemptDeadServiceRecovery(e);
+            throw new UnsupportedOperationException("getFWVersion failed");
+        }
     }
     /**
      * @hide
@@ -135,26 +176,6 @@ public final class NxpNfcAdapter {
     }
 
     /**
-     * NFC service dead - attempt best effort recovery
-     * @hide
-     */
-    private void attemptDeadServiceRecovery() {
-        Log.e(TAG, "NFC service dead - attempting to recover");
-        INfcAdapter service = getServiceInterface();
-        if (service == null) {
-            Log.e(TAG, "could not retrieve NFC service during service recovery");
-            // nothing more can be done now, sService is still stale, we'll hit
-            // this recovery path again later
-            return;
-        }
-        // assigning to sService is not thread-safe, but this is best-effort code
-        // and on a well-behaved system should never happen
-        sService = service;
-        sNxpService = getNxpNfcAdapterInterface();
-        return;
-    }
-
-    /**
      * Get the Available Secure Element List
      * <p>Requires {@link android.Manifest.permission#NFC} permission.
      *
@@ -187,7 +208,7 @@ public final class NxpNfcAdapter {
                 {
                     arr[i]= NxpConstants.UICC2_ID;
                 }
-                else if (seList[i] == NxpConstants.ALL_SE_ID_TYPE) {
+                else if (seList[i] == ALL_SE_ID_TYPE) {
                     arr[i]= NxpConstants.ALL_SE_ID;
                 }
                 else {
@@ -201,6 +222,7 @@ public final class NxpNfcAdapter {
         }
         catch (RemoteException e) {
             Log.e(TAG, "getAvailableSecureElementList: failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("Failure in deselecting the selected Secure Element");
         }
     }
@@ -231,6 +253,10 @@ public final class NxpNfcAdapter {
                     {
                         arr[i]= NxpConstants.UICC_ID;
                     }
+                    else if(activeSEList[i]==NxpConstants.UICC2_ID_TYPE)
+                    {
+                        arr[i]= NxpConstants.UICC2_ID;
+                    }
                     else {
                         throw new IOException("No Secure Element Activeted");
                     }
@@ -241,6 +267,7 @@ public final class NxpNfcAdapter {
             return arr;
         } catch (RemoteException e) {
             Log.e(TAG, "getActiveSecureElementList: failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("Failure in deselecting the selected Secure Element");
         }
     }
@@ -264,7 +291,7 @@ public final class NxpNfcAdapter {
         } else if (seId.equals(NxpConstants.SMART_MX_ID)) {
             seID= NxpConstants.SMART_MX_ID_TYPE;
         } else if (seId.equals(NxpConstants.ALL_SE_ID)) {
-            seID = NxpConstants.ALL_SE_ID_TYPE;
+            seID= ALL_SE_ID_TYPE;
         } else {
             Log.e(TAG, "selectDefaultSecureElement: wrong Secure Element ID");
             throw new IOException("selectDefaultSecureElement failed: Wronf Secure Element ID");
@@ -278,6 +305,7 @@ public final class NxpNfcAdapter {
             }
         } catch (RemoteException e) {
             Log.e(TAG, "selectDefaultSecureElement: getSelectedSecureElement failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("Failure in deselecting the selected Secure Element");
         }
 
@@ -321,6 +349,7 @@ public final class NxpNfcAdapter {
             }
         } catch (RemoteException e) {
             Log.e(TAG, "selectUiccCardEmulation: getSecureElementList failed", e);
+            attemptDeadServiceRecovery(e);
         }
     }
 
@@ -338,6 +367,8 @@ public final class NxpNfcAdapter {
             boolean result = false;
             if (routeLoc.equals(NxpConstants.UICC_ID)) {
             seID = NxpConstants.UICC_ID_TYPE;
+            } else if (routeLoc.equals(NxpConstants.UICC2_ID)) {
+            seID= NxpConstants.UICC2_ID_TYPE;
             } else if (routeLoc.equals(NxpConstants.SMART_MX_ID)) {
             seID= NxpConstants.SMART_MX_ID_TYPE;
             } else if (routeLoc.equals(NxpConstants.HOST_ID)) {
@@ -350,6 +381,7 @@ public final class NxpNfcAdapter {
             sNxpService.MifareDesfireRouteSet(seID, fullPower, lowPower, noPower);
             } catch (RemoteException e) {
             Log.e(TAG, "confMifareDesfireProtoRoute failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("confMifareDesfireProtoRoute failed");
             }
     }
@@ -367,6 +399,8 @@ public final class NxpNfcAdapter {
             boolean result = false;
             if (routeLoc.equals(NxpConstants.UICC_ID)) {
             seID = NxpConstants.UICC_ID_TYPE;
+            } else if (routeLoc.equals(NxpConstants.UICC2_ID)) {
+            seID= NxpConstants.UICC2_ID_TYPE;
             } else if (routeLoc.equals(NxpConstants.SMART_MX_ID)) {
             seID= NxpConstants.SMART_MX_ID_TYPE;
             } else if (routeLoc.equals(NxpConstants.HOST_ID)) {
@@ -378,6 +412,7 @@ public final class NxpNfcAdapter {
                sNxpService.DefaultRouteSet(seID, fullPower, lowPower, noPower);
             } catch (RemoteException e) {
             Log.e(TAG, "confsetDefaultRoute failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("confsetDefaultRoute failed");
         }
     }
@@ -396,6 +431,8 @@ public final class NxpNfcAdapter {
             boolean result = false;
             if (routeLoc.equals(NxpConstants.UICC_ID)) {
             seID = NxpConstants.UICC_ID_TYPE;
+            } else if (routeLoc.equals(NxpConstants.UICC2_ID)) {
+            seID= NxpConstants.UICC2_ID_TYPE;
             } else if (routeLoc.equals(NxpConstants.SMART_MX_ID)) {
             seID= NxpConstants.SMART_MX_ID_TYPE;
             } else if (routeLoc.equals(NxpConstants.HOST_ID)) {
@@ -407,6 +444,7 @@ public final class NxpNfcAdapter {
             sNxpService.MifareCLTRouteSet(seID, fullPower, lowPower, noPower);
         } catch (RemoteException e) {
             Log.e(TAG, "confMifareCLT failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("confMifareCLT failed");
         }
     }
@@ -435,6 +473,7 @@ public final class NxpNfcAdapter {
              return new NfcDta(sNxpService.getNfcDtaInterface());
          } catch (RemoteException e) {
              Log.e(TAG, "createNfcDta failed", e);
+             attemptDeadServiceRecovery(e);
              return null;
          }
     }
@@ -448,6 +487,7 @@ public final class NxpNfcAdapter {
             return sNxpService.getNxpNfcAccessExtrasInterface(pkg);
         } catch (RemoteException e) {
             Log.e(TAG, "getNxpNfcAccessExtras failed", e);
+            attemptDeadServiceRecovery(e);
             return null;
         }
     }
@@ -483,13 +523,14 @@ public final class NxpNfcAdapter {
                     return NxpConstants.UICC2_ID;
             } else if (seID == NxpConstants.SMART_MX_ID_TYPE/*0xABCDEF*/) {
                 return NxpConstants.SMART_MX_ID;
-            } else if (seID == NxpConstants.ALL_SE_ID_TYPE/*0xABCDFE*/) {
+            } else if (seID == ALL_SE_ID_TYPE/*0xABCDFE*/) {
                 return NxpConstants.ALL_SE_ID;
             } else {
                 throw new IOException("No Secure Element selected");
             }
         } catch (RemoteException e) {
             Log.e(TAG, "getSelectedSecureElement failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("getSelectedSecureElement failed");
         }
     }
@@ -506,6 +547,7 @@ public final class NxpNfcAdapter {
             sNxpService.deselectSecureElement(pkg);
         } catch (RemoteException e) {
             Log.e(TAG, "deselectSecureElement failed", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("deselectSecureElement failed");
         }
     }
@@ -522,6 +564,7 @@ public final class NxpNfcAdapter {
         catch(RemoteException e)
         {
             Log.e(TAG, "RemoteException in getFwVersion(): ", e);
+            attemptDeadServiceRecovery(e);
             throw new IOException("RemoteException in getFwVersion()");
         }
     }
@@ -551,6 +594,7 @@ public final class NxpNfcAdapter {
         }catch(RemoteException e)
         {
             e.printStackTrace();
+            attemptDeadServiceRecovery(e);
             return null;
         }
     }
@@ -581,6 +625,7 @@ public final class NxpNfcAdapter {
         }catch(RemoteException e)
         {
             e.printStackTrace();
+            attemptDeadServiceRecovery(e);
             return 0xFF;
         }
     }
@@ -605,6 +650,7 @@ public final class NxpNfcAdapter {
             return sNxpService.setConfig(configs , pkg);
         } catch(RemoteException e) {
             e.printStackTrace();
+            attemptDeadServiceRecovery(e);
             return 0xFF;
         }
     }
@@ -620,6 +666,7 @@ public final class NxpNfcAdapter {
             return sNxpService.getNxpNfcAdapterExtrasInterface();
         } catch (RemoteException e) {
         Log.e(TAG, "getNxpNfcAdapterExtrasInterface failed", e);
+        attemptDeadServiceRecovery(e);
             return null;
         }
     }
@@ -636,6 +683,7 @@ public final class NxpNfcAdapter {
             return sNxpService.getMaxAidRoutingTableSize();
         }catch(RemoteException e){
             e.printStackTrace();
+            attemptDeadServiceRecovery(e);
             return 0x00;
         }
     }
@@ -651,6 +699,7 @@ public final class NxpNfcAdapter {
             return sNxpService.getCommittedAidRoutingTableSize();
         }catch(RemoteException e){
             e.printStackTrace();
+            attemptDeadServiceRecovery(e);
             return 0x00;
         }
     }
