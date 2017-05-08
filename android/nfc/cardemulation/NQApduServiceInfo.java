@@ -454,7 +454,7 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
         return aidSize;
     }
 
-    private int getAidCacheSizeForCategory(String category) {
+    public int getAidCacheSizeForCategory(String category) {
         ArrayList<NQAidGroup> nqAidGroups = new ArrayList<NQAidGroup>();
         List<String> aids;
         int aidCacheSize = 0x00;
