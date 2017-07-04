@@ -186,16 +186,20 @@ public class NxpNfcController {
      */
     private NxpOffHostService ConvertApduServiceToOffHostService(PackageManager pm, NQApduServiceInfo apduService) {
         NxpOffHostService mService;
-        //AidGroup mOffHostAid;
-        //String description;
-        //String category;
-        //String sEname;
-        //Drawable banner;
-        //boolean modifiable;
-        NQApduServiceInfo.ESeInfo mEseInfo = apduService.getSEInfo();
+        int seId=0;
+        String sEname =null;
         ResolveInfo resolveInfo = apduService.getResolveInfo();
         String description = apduService.getDescription();
-        String sEname = Integer.toString(mEseInfo.getSeId());
+        seId = apduService.getSEInfo().getSeId();
+        if (NxpConstants.UICC_ID_TYPE == seId) {
+            sEname = "SIM1";
+        } else if (NxpConstants.UICC2_ID_TYPE == seId) {
+            sEname = "SIM2";
+        } else if (NxpConstants.SMART_MX_ID_TYPE == seId) {
+            sEname = "eSE";
+        } else {
+            Log.e(TAG,"Wrong SE ID");
+        }
         Drawable banner = null; //apduService.loadBanner(pm);
         boolean modifiable = apduService.getModifiable();
         int bannerId = apduService.getBannerId();
@@ -246,15 +250,16 @@ public class NxpNfcController {
         resolveInfo.serviceInfo.applicationInfo = new ApplicationInfo();
         resolveInfo.serviceInfo.packageName = pkg;
         resolveInfo.serviceInfo.name = mService.getServiceName();
-
-        if(seName.equals(NxpConstants.UICC_ID)) {
-            seId = NxpConstants.UICC_ID_TYPE;
-        } else if (seName.equals(NxpConstants.SMART_MX_ID)) {
-            seId = NxpConstants.SMART_MX_ID_TYPE;
-        } else if (seName.equals(NxpConstants.HOST_ID)) {
-            seId = NxpConstants.HOST_ID_TYPE;
-        } else {
-            Log.e(TAG,"wrong Se name");
+        if(seName != null) {
+            if(seName.equals("SIM") || seName.equals("SIM1")) {
+                seId = NxpConstants.UICC_ID_TYPE;
+            } else if (seName.equals("SIM2")) {
+                seId = NxpConstants.UICC2_ID_TYPE;
+            } else if (seName.equals("eSE")) {
+                seId = NxpConstants.SMART_MX_ID_TYPE;
+            } else {
+                Log.e(TAG,"wrong Se name");
+            }
         }
         NQApduServiceInfo.ESeInfo mEseInfo = new NQApduServiceInfo.ESeInfo(seId,powerstate);
         return new NQApduServiceInfo(resolveInfo,onHost,description,staticNQAidGroups, dynamicNQAidGroups,
@@ -383,11 +388,20 @@ public class NxpNfcController {
 
         //Temp for SE conversion
         String secureElement = null;
-        if(seName.startsWith("SIM"))
+        if((seName.equals("SIM")) || (seName.equals("SIM1"))) {
             secureElement = NxpConstants.UICC_ID;
+        } else if (seName.equals("SIM2")){
+            secureElement = NxpConstants.UICC2_ID;
+        } else if ((seName.equals("eSE1")) || (seName.equals("eSE"))){
+            secureElement = NxpConstants.SMART_MX_ID;
+        } else {
+            Log.e(TAG,"wrong Se name");
+        }
 
         if(secureElement.equals(NxpConstants.UICC_ID)) {
             seId = NxpConstants.UICC_ID_TYPE;
+        } else if (secureElement.equals(NxpConstants.UICC2_ID)) {
+            seId = NxpConstants.UICC2_ID_TYPE;
         } else if (secureElement.equals(NxpConstants.SMART_MX_ID)) {
             seId = NxpConstants.SMART_MX_ID_TYPE;
         } else if (secureElement.equals(NxpConstants.HOST_ID)) {
@@ -455,6 +469,7 @@ public class NxpNfcController {
         boolean isLast = false;
         boolean isDefault = false;
         String seName = null;
+        int seId=0;
 
         List<NQApduServiceInfo> apduServices = new ArrayList<NQApduServiceInfo>();
         try {
@@ -470,10 +485,18 @@ public class NxpNfcController {
                     isDefault = true;
                 }
 
-                if (NxpConstants.UICC_ID_TYPE == (apduServices.get(i).getSEInfo().getSeId())) {
+                seId = apduServices.get(i).getSEInfo().getSeId();
+                if( seId == -1) {
+                    Log.e(TAG,"Wrong SE ID (-1)");
+                    continue;
+                }
+                Log.e(TAG, " SE ID: " + seId);
+                if (NxpConstants.UICC_ID_TYPE == seId) {
+                    seName = "SIM";
+                } else if (NxpConstants.UICC2_ID_TYPE == seId) {
                     seName = "SIM";
                 } else {
-                    continue;
+                    Log.e(TAG,"Wrong SE ID");
                 }
 
                 if(DBG) Log.d(TAG, "getOffHostServices() : seName: " +seName + " apduServices.get(" + i + ").toString(): "
@@ -512,10 +535,17 @@ public class NxpNfcController {
         boolean isDefault = true;
         int userId = UserHandle.myUserId();
         String seName = null;
+        int seId=0;
         try {
             apduService = mNfcControllerService.getDefaultOffHostService(userId, packageName);
-            if (NxpConstants.UICC_ID_TYPE == (apduService.getSEInfo().getSeId())) {
+            seId = apduService.getSEInfo().getSeId();
+	    Log.e(TAG," SE ID: " + seId);
+            if (NxpConstants.UICC_ID_TYPE == seId) {
                 seName = "SIM";
+            } else if (NxpConstants.UICC2_ID_TYPE == seId) {
+                seName = "SIM";
+            } else {
+                Log.e(TAG,"Wrong SE ID");
             }
 
             if(DBG) Log.d(TAG, "getDefaultOffHostService: seName: " + seName + " apduService.toString():" + apduService.toString());
@@ -549,5 +579,25 @@ public class NxpNfcController {
             Log.e(TAG, "enableMultiReception failed", e);
             return;
         }
+    }
+
+    public boolean isStaticOffhostService(int userId, String packageName, NxpOffHostService service) {
+        boolean isStatic = false;
+        List<NQApduServiceInfo> nqapduServices = new ArrayList<NQApduServiceInfo>();
+
+        try {
+            nqapduServices = mNfcControllerService.getOffHostServices(userId, packageName);
+
+            for(int i=0; i< nqapduServices.size(); i++) {
+                NQApduServiceInfo sService = nqapduServices.get(i);
+                if(sService.getModifiable() == false && service.getServiceName().compareTo((sService.getResolveInfo()).serviceInfo.name)==0){
+                    isStatic = true;
+                }
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "getOffHostServices failed", e);
+            isStatic = true;
+        }
+        return isStatic;
     }
 }
