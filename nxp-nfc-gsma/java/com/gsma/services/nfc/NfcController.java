@@ -53,22 +53,28 @@ public class NfcController {
      */
     private static HashMap<Context, NfcController> sNfcController = new HashMap();
 
+    /** Device property [Battery levels]*/
+    private static final int BATTERY_OPERATIONAL_MODE=0x92;
+
     private ArrayList<OffHostService> mOffHostServiceList = new ArrayList<OffHostService>();
     private  NxpNfcController mNxpNfcController = null;
     private HashMap<String, OffHostService> mOffhostService = new HashMap<String, OffHostService>();
     private Context mContext;
     private NfcController.Callbacks mCb;
     private int mUserId;
+    private NxpHandset mNxpHandset = null;
     private NxpNfcControllerCallback mNxpCallback = null;
 
     NfcController() {
         mUserId = UserHandle.myUserId();
+        mNxpHandset = new NxpHandset();
         mNxpCallback = new NxpNfcControllerCallback();
         mNxpNfcController = new NxpNfcController();
     }
 
     NfcController(Context context) {
         mContext = context;
+        mNxpHandset = new NxpHandset();
         mNxpCallback = new NxpNfcControllerCallback();
         mNxpNfcController = new NxpNfcController(context);
         mUserId = UserHandle.myUserId();
@@ -269,6 +275,32 @@ public class NfcController {
      */
     public OffHostService defineOffHostService(String description, String SEName) {
         boolean modifiable = true;
+        int i = 0;
+        if(description == null){
+            throw new IllegalArgumentException("Invalid description provided");
+        }
+        if((SEName == null) || (SEName.isEmpty())){
+            throw new IllegalArgumentException("Invalid SEName provided");
+        }
+        String sSEName = SEName;
+        if(sSEName.equals("SIM")){
+        sSEName+=Integer.toString(1);
+        }
+        List<String> secureElementList = new ArrayList<String>(0x03);
+        secureElementList = mNxpHandset.getAvailableSecureElements(BATTERY_OPERATIONAL_MODE);
+
+        if(secureElementList.size() > 0)
+        {
+            for(i =0; i< secureElementList.size(); i++) {
+                if(secureElementList.get(i).equals(sSEName))
+                    break;
+            }
+            if(i == secureElementList.size())
+            {
+                throw new IllegalArgumentException("Invalid SEName provided");
+            }
+        }
+
         String packageName = mContext.getPackageName();
         String serviceName = getRandomString();
         NxpOffHostService offHostService = new NxpOffHostService(mUserId, description, SEName, packageName,serviceName, modifiable);
@@ -284,6 +316,13 @@ public class NfcController {
      */
     public void deleteOffHostService(OffHostService service) {
         String packageName = mContext.getPackageName();
+
+        if(service == null){
+            throw new IllegalArgumentException("Invalid service provided");
+        } else if(mNxpNfcController.isStaticOffhostService(mUserId, packageName, convertToNxpOffhostService(service))) {
+            throw new UnsupportedOperationException("Service has been defined in Manifest and cannot be deleted");
+        }
+
         mNxpNfcController.deleteOffHostService(mUserId, packageName, convertToNxpOffhostService(service));
     }
 
@@ -297,6 +336,9 @@ public class NfcController {
     public OffHostService[] getOffHostServices() {
         String packageName = mContext.getPackageName();
         ArrayList<NxpOffHostService> mNxpOffhost = mNxpNfcController.getOffHostServices(mUserId, packageName);
+        if((mNxpOffhost == null) ||(mNxpOffhost.isEmpty())){
+            return null;
+        }
         ArrayList<OffHostService> mOffHostList = new ArrayList<OffHostService>();
         for(NxpOffHostService mHost : mNxpOffhost) {
             OffHostService  mOffHost = new OffHostService(mHost);
@@ -326,11 +368,15 @@ public class NfcController {
         android.nfc.cardemulation.NQAidGroup mCeAidGroup = null;
         List<String> aidList = new ArrayList<String>();
         for(com.gsma.services.nfc.AidGroup mGroup : mAidGroups) {
-            for(String aid :mGroup.getAidList()) {
-                aidList.add(aid);
+            if(!mGroup.getAidList().isEmpty())
+            {
+                mCeAidGroup = new android.nfc.cardemulation.AidGroup(mGroup.getCategory(), mGroup.getDescription());
+                aidList = mCeAidGroup.getAids();
+                for(String aid :mGroup.getAidList()) {
+                    aidList.add(aid);
+                }
+                mApduAidGroupList.add(mCeAidGroup);
             }
-            mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList, mGroup.getCategory(), mGroup.getDescription());
-            mApduAidGroupList.add(mCeAidGroup);
         }
     return mApduAidGroupList;
     }

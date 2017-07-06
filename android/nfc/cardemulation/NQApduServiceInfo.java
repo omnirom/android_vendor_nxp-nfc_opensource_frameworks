@@ -27,7 +27,6 @@ import android.nfc.cardemulation.CardEmulation;
 import android.nfc.cardemulation.HostApduService;
 import android.nfc.cardemulation.OffHostApduService;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
@@ -40,7 +39,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.os.ResultReceiver;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Xml;
@@ -58,8 +56,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.io.File;
-import java.io.FileOutputStream;
+
 
 /**
  * @hide
@@ -114,7 +111,7 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
     /**
      * The Drawable of the service banner specified by the Application Dynamically.
      */
-    final public Drawable mBanner;
+    public final Drawable mBanner;
 
     /**
      * This says whether the Application can modify the AIDs or not.
@@ -392,7 +389,13 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
                 extParser.close();
             }
         }else {
-            mSeExtension = new ESeInfo(-1, 0);
+            if(!onHost) {
+                Log.e(TAG, "SE extension not present, Setting default offhost seID");
+                mSeExtension = new ESeInfo(SECURE_ELEMENT_ROUTE_UICC, 0);
+            }
+            else {
+                mSeExtension = new ESeInfo(-1, 0);
+            }
             mFelicaExtension = new FelicaInfo(null, null);
         }
     }
@@ -454,7 +457,7 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
         return aidSize;
     }
 
-    private int getAidCacheSizeForCategory(String category) {
+    public int getAidCacheSizeForCategory(String category) {
         ArrayList<NQAidGroup> nqAidGroups = new ArrayList<NQAidGroup>();
         List<String> aids;
         int aidCacheSize = 0x00;
@@ -705,6 +708,7 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
             dest.writeParcelable(null, flags);
         }
         dest.writeInt(mModifiable ? 1 : 0);
+        dest.writeInt(mServiceState);
     };
 
     public static final Parcelable.Creator<NQApduServiceInfo> CREATOR =
@@ -744,9 +748,11 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
                 }
             }
             boolean modifiable = source.readInt() != 0;
-            return new NQApduServiceInfo(info, onHost, description, staticNQAidGroups,
+            NQApduServiceInfo service = new NQApduServiceInfo(info, onHost, description, staticNQAidGroups,
                     dynamicNQAidGroups, requiresUnlock, bannerResource, uid,
                     settingsActivityName, seExtension, nfcid2Groups, drawable,modifiable);
+            service.setServiceState(CardEmulation.CATEGORY_OTHER, source.readInt());
+            return service;
         }
 
         @Override

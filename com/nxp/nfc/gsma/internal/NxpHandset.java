@@ -47,6 +47,8 @@ public class NxpHandset {
     /** Device property [NFC Technologies]*/
     private static final int NFC_FORUM_TYPE3=0x23;
 
+    /** Device property [Framework components]*/
+    public static final int OMAPI=0x50;
 
     /** Device property [Battery Levels]*/
     private static final int BATTERY_LOW_MODE=0x90;
@@ -63,7 +65,7 @@ public class NxpHandset {
 
 
 
-    private final int GSMA_NFCHST = 8000;
+    private final int GSMA_NFCHST = 9000;
 
     public NxpHandset() {
         mContext = getContext();
@@ -104,13 +106,13 @@ public class NxpHandset {
      * Return handset status for the following features
      * HCI_SWP, MULTIPLE_ACTIVE_CEE FELICA,
      * MIFARE_CLASSIC, MIFARE_DESFIRE,
-     * NFC_FORUM_TYPE3 OMAPI BATTERY_LOW_MODE,
+     * NFC_FORUM_TYPE3, OMAPI, BATTERY_LOW_MODE,
      * BATTERY_POWER_OFF_MODE
      */
     public boolean getNxpProperty(int feature) {
         boolean result = false;
         if((feature != HCI_SWP) && (feature != MULTIPLE_ACTIVE_CEE) && (feature != FELICA) && (feature != MIFARE_CLASSIC)
-            && (feature != MIFARE_DESFIRE) && (feature != NFC_FORUM_TYPE3) && (feature != BATTERY_LOW_MODE)
+            && (feature != MIFARE_DESFIRE) && (feature != NFC_FORUM_TYPE3) && (feature != BATTERY_LOW_MODE) && (feature != OMAPI)
             && (feature != BATTERY_POWER_OFF_MODE))
             throw new IllegalArgumentException("Feature is inappropriate argument");
 
@@ -122,6 +124,7 @@ public class NxpHandset {
             case MIFARE_DESFIRE:
             case NFC_FORUM_TYPE3:
             case BATTERY_LOW_MODE:
+            case OMAPI:
                 result = true;
                 break;
             case BATTERY_POWER_OFF_MODE:
@@ -149,10 +152,24 @@ public class NxpHandset {
             }
             break;
         default:
-            break;
+            throw new IllegalArgumentException("Wrong value for batteryLevel");
         }
         if(secureElemArray != null && secureElemArray.length > 0x00) {
             Collections.addAll(secureElementList , secureElemArray);
+            for(int i =0; i< secureElementList.size(); i++) {
+                if(secureElementList.get(i).equals(NxpConstants.UICC_ID))
+                {
+                    secureElementList.set(i,"SIM1");
+                }
+                else if(secureElementList.get(i).equals(NxpConstants.UICC2_ID))
+                {
+                    secureElementList.set(i,"SIM2");
+                }
+                else if(secureElementList.get(i).equals(NxpConstants.SMART_MX_ID))
+                {
+                    secureElementList.set(i,"eSE");
+                }
+            }
             return secureElementList;
         }
         return Collections.emptyList();
@@ -166,7 +183,12 @@ public class NxpHandset {
         boolean isEnabled = false;
         Log.d(TAG,"pkg " + pkg);
         try {
-            isEnabled = mNfcControllerService.enableMultiEvt_NxptransactionReception(pkg, NxpConstants.UICC_ID);
+            isEnabled = mNfcControllerService.enableMultiEvt_NxptransactionReception(pkg, "SIM");
+
+            if(!isEnabled) {
+                isEnabled = mNfcControllerService.enableMultiEvt_NxptransactionReception(pkg, "SIM1");
+            }
+
         } catch (RemoteException e) {
             Log.e(TAG, "Exception:commitOffHostService failed", e);
         }
