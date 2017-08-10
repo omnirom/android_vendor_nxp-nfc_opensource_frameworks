@@ -77,6 +77,10 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
         this.nqdescription = null;
     }
 
+   public NQAidGroup(String category, String description) {
+        super(category,description);
+        this.nqdescription = null;
+   }
 
     public NQAidGroup(AidGroup aid) {
         this(aid.getAids(), aid.getCategory(), null);

@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 import com.nxp.nfc.gsma.internal.NxpNfcController;
 import com.nxp.nfc.gsma.internal.NxpOffHostService;
+import android.nfc.cardemulation.CardEmulation;
+
 /**
  * This class handles "Off-Host" services
  * @since NFCHST6.0 <I>(REQ_127)</I>

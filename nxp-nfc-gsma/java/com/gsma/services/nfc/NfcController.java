@@ -19,6 +19,7 @@
  */
 package com.gsma.services.nfc;
 
+
 import android.content.Context;
 import android.util.Log;
 import android.app.AlertDialog;
@@ -37,6 +38,7 @@ import android.app.Activity;
 import com.nxp.nfc.gsma.internal.NxpNfcController;
 import com.nxp.nfc.gsma.internal.NxpNfcController.NxpCallbacks;
 import com.nxp.nfc.gsma.internal.NxpOffHostService;
+import com.nxp.nfc.gsma.internal.NxpHandset;
 import com.gsma.services.utils.InsufficientResourcesException;
 import android.os.UserHandle;
 /**
@@ -370,11 +372,10 @@ public class NfcController {
         for(com.gsma.services.nfc.AidGroup mGroup : mAidGroups) {
             if(!mGroup.getAidList().isEmpty())
             {
-                mCeAidGroup = new android.nfc.cardemulation.AidGroup(mGroup.getCategory(), mGroup.getDescription());
-                aidList = mCeAidGroup.getAids();
                 for(String aid :mGroup.getAidList()) {
                     aidList.add(aid);
                 }
+                mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList,mGroup.getCategory(), mGroup.getDescription());
                 mApduAidGroupList.add(mCeAidGroup);
             }
         }
