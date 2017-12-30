@@ -46,8 +46,11 @@ import android.os.UserHandle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.RemoteException;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import com.nxp.nfc.gsma.internal.INxpNfcController;
 import com.nxp.nfc.NxpConstants;
+import java.io.ByteArrayOutputStream;
 
 public class NxpNfcController {
 
@@ -70,7 +73,7 @@ public class NxpNfcController {
     /** Any screen mode*/
     public static final int SCREEN_ALL_MODES=0x02;
 
-    private Context mContext;
+    Context mContext;
     private NfcAdapter mNfcAdapter = null;
     private NxpNfcAdapter mNxpNfcAdapter = null;
     private INxpNfcController mNfcControllerService = null;
@@ -237,9 +240,16 @@ public class NxpNfcController {
         ArrayList<android.nfc.cardemulation.NQAidGroup> dynamicNQAidGroups = new ArrayList<NQAidGroup>();
         dynamicNQAidGroups.addAll(mService.mNQAidGroupList);
         boolean requiresUnlock = false;
-        //Drawable DrawableResource = null;
-        //mService.getBanner();
-        Drawable DrawableResource = mService.getBanner();
+        Drawable banner = mService.getBanner();
+        byte[] byteArrayBanner = null;
+
+        if(banner != null){
+            Bitmap bitmap = (Bitmap)((BitmapDrawable)banner).getBitmap();
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            byteArrayBanner = stream.toByteArray();
+        }
+
         int seId = 0;
         String seName = mService.getLocation();
         int powerstate = -1;
@@ -263,7 +273,7 @@ public class NxpNfcController {
         }
         NQApduServiceInfo.ESeInfo mEseInfo = new NQApduServiceInfo.ESeInfo(seId,powerstate);
         return new NQApduServiceInfo(resolveInfo,onHost,description,staticNQAidGroups, dynamicNQAidGroups,
-                requiresUnlock,bannerId,userId, "Fixme: NXP:<Activity Name>", mEseInfo, null, DrawableResource, modifiable);
+                requiresUnlock,bannerId,userId, "Fixme: NXP:<Activity Name>", mEseInfo, null, byteArrayBanner, modifiable);
     }
 
     /**
@@ -374,7 +384,6 @@ public class NxpNfcController {
         }
         if(DBG) Log.d(TAG, "aidGroups.size() " + aidGroups.size());
         boolean requiresUnlock = false;
-        Drawable DrawableResource = null;
         int seId = 0;
         int powerstate = -1;
         boolean modifiable = true;
@@ -412,7 +421,7 @@ public class NxpNfcController {
         NQApduServiceInfo.ESeInfo mEseInfo = new NQApduServiceInfo.ESeInfo(seId,powerstate);
         NQApduServiceInfo newService = new NQApduServiceInfo(resolveInfo, onHost, description,
                 staticNQAidGroups, dynamicNQAidGroups, requiresUnlock, bannerResId, userId,
-                "Fixme: NXP:<Activity Name>", mEseInfo, null, DrawableResource, modifiable);
+                "Fixme: NXP:<Activity Name>", mEseInfo, null, null, modifiable);
 
         mSeNameApduService.put(seName, newService);
 

@@ -30,8 +30,8 @@ import java.io.IOException;
 */
 public final class NfcDta {
     private static final String TAG = "NfcDta";
-    private static INfcDta sService;
-    public NfcDta(INfcDta mDtaService)
+    private static INxpNfcDta sService;
+    public NfcDta(INxpNfcDta mDtaService)
     {
         sService = mDtaService;
     }

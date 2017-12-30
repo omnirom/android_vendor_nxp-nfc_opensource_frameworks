@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2015 NXP Semiconductors
@@ -24,7 +24,7 @@ package android.nfc.cardemulation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.lang.Class;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlSerializer;
@@ -32,6 +32,7 @@ import org.xmlpull.v1.XmlSerializer;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
+import java.lang.reflect.Field;
 
 /**
  * The NQAidGroup class represents a group of Application Identifiers (AIDs).
@@ -54,6 +55,10 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
     static final String TAG = "NQAidGroup";
     final String nqdescription;
 
+    /**
+     * Mapping from category to static APDU pattern group
+     */
+    protected ArrayList<ApduPatternGroup> mStaticApduPatternGroups;
 
     /**
      * Creates a new NQAidGroup object.
@@ -64,6 +69,7 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
     public NQAidGroup(List<String> aids, String category, String description) {
         super(aids,category);
         this.nqdescription = description;
+        this.mStaticApduPatternGroups = new ArrayList<ApduPatternGroup>();
     }
 
     /**
@@ -101,6 +107,25 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
      */
     public AidGroup createAidGroup() {
         return new AidGroup(this.getAids(), this.getCategory());
+    }
+
+    public void addApduGroup(ApduPatternGroup apdu) {
+        mStaticApduPatternGroups.add(apdu);
+    }
+
+    /**
+     * Returns a consolidated list of APDU from the APDU groups
+     * registered by this service.
+     * @return List of APDU pattern registered by the service
+     */
+    public ArrayList<ApduPattern> getApduPatternList() {
+        final ArrayList<ApduPattern> apdulist = new ArrayList<ApduPattern>();
+        for (ApduPatternGroup group : mStaticApduPatternGroups) {
+            for(ApduPattern apduPattern : group.getApduPattern()) {
+                apdulist.add(apduPattern);
+            }
+        }
+        return apdulist;
     }
 
     @Override
@@ -187,8 +212,13 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
                     Log.d(TAG, "Ignoring unexpected tag: " + tagName);
                 }
             } else if (eventType == XmlPullParser.END_TAG) {
-                if (tagName.equals("aid-group") && inGroup && aids.size() > 0) {
-                    group = new NQAidGroup(aids, category, nqdescription);
+                if (tagName.equals("aid-group") && inGroup) {
+                    if(aids.size() > 0) {
+                        group = new NQAidGroup(aids, category, nqdescription);
+                    }
+                    else {
+                        group = new NQAidGroup(category, nqdescription);
+                    }
                     break;
                 }
             }
@@ -208,5 +238,110 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
             out.endTag(null, "aid");
         }
         out.endTag(null, "aid-group");
+    }
+
+    public static class ApduPatternGroup implements Parcelable {
+        public static final int MAX_NUM_APDU = 5;
+        public static final String TAG = "ApduPatternGroup";
+
+        protected String description;
+        protected List<ApduPattern> apduList;
+
+        public ApduPatternGroup(String description)
+        {
+            this.description = description;
+            apduList = new ArrayList<ApduPattern>(MAX_NUM_APDU);
+        }
+
+        public void addApduPattern(ApduPattern apduPattern)
+        {
+            if(!containsApduPattern(apduPattern))
+            {
+                apduList.add(apduPattern);
+            }
+        }
+
+        private boolean containsApduPattern(ApduPattern apduPattern)
+        {
+            boolean status = false;
+            for(ApduPattern apdu : apduList)
+            {
+                if(apdu.getreferenceData().equalsIgnoreCase(apduPattern.getreferenceData()))
+                {
+                    status = true;
+                    break;
+                }
+            }
+            return status;
+        }
+
+        public List<ApduPattern> getApduPattern()
+        {
+            return apduList;
+        }
+
+        public String getDescription()
+        {
+            return description;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder out = new StringBuilder("APDU Pattern List");
+            for (ApduPattern apdu : apduList) {
+                out.append("apdu_data"+apdu.getreferenceData());
+                out.append("apdu mask"+apdu.getMask());
+            }
+            return out.toString();
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(description);
+            dest.writeInt(apduList.size());
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        public static final Parcelable.Creator<ApduPatternGroup> CREATOR =
+                new Parcelable.Creator<ApduPatternGroup>() {
+
+            @Override
+            public ApduPatternGroup createFromParcel(Parcel source) {
+                String description = source.readString();
+                int listSize = source.readInt();
+                ArrayList<ApduPattern> apduList = new ArrayList<ApduPattern>();
+                ApduPatternGroup apduGroup = new ApduPatternGroup(description);
+                return apduGroup;
+            }
+
+            @Override
+            public ApduPatternGroup[] newArray(int size) {
+                return new ApduPatternGroup[size];
+            }
+        };
+    }
+
+    public class ApduPattern {
+        private String reference_data;
+        private String mask;
+        private String description;
+        public ApduPattern(String reference_data, String mask, String description)
+        {
+            this.reference_data = reference_data;
+            this.mask = mask;
+            this.description = description;
+        }
+        public String getreferenceData()
+        {
+            return reference_data;
+        }
+        public String getMask()
+        {
+           return mask;
+        }
     }
 }
