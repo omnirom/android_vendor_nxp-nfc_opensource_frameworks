@@ -18,7 +18,7 @@ package com.nxp.nfc;
 /**
  * {@hide}
  */
-interface INfcDta {
+interface INxpNfcDta {
 
     /* DTA API */
 

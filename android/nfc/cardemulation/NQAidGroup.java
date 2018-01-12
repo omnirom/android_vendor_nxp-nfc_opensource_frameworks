@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2015 NXP Semiconductors
@@ -55,6 +55,10 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
     static final String TAG = "NQAidGroup";
     final String nqdescription;
 
+    /**
+     * Mapping from category to static APDU pattern group
+     */
+    protected ArrayList<ApduPatternGroup> mStaticNQApduPatternGroups;
 
     /**
      * Creates a new NQAidGroup object.
@@ -62,7 +66,6 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
      * @param aids The list of AIDs present in the group
      * @param category The category of this group, e.g. {@link CardEmulation#CATEGORY_PAYMENT}
      */
-    protected ArrayList<ApduPatternGroup> mStaticNQApduPatternGroups;
     public NQAidGroup(List<String> aids, String category, String description) {
         super(aids,category);
         this.nqdescription = description;
@@ -141,10 +144,13 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
         return 0;
     }
 
-
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        super.writeToParcel(dest,flags);
+        dest.writeString(category);
+        dest.writeInt(aids.size());
+        if (aids.size() > 0) {
+            dest.writeStringList(aids);
+        }
         if(nqdescription != null) {
             dest.writeString(nqdescription);
         } else {
