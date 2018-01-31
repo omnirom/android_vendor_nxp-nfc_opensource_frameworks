@@ -25,7 +25,6 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.Bitmap;
-import android.nfc.cardemulation.CardEmulation;
 import android.util.Log;
 
 import com.gsma.services.utils.InsufficientResourcesException;
@@ -37,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import com.nxp.nfc.gsma.internal.NxpNfcController;
 import com.nxp.nfc.gsma.internal.NxpOffHostService;
+import android.nfc.cardemulation.CardEmulation;
 
 /**
  * This class handles "Off-Host" services
@@ -315,7 +315,7 @@ public class OffHostService {
     }
 
     /**
-     *Compare drawable resources(ex: .png/.jpg/.bmp/..)
+     * Compare drawable resources(ex: .png/.jpg/.bmp/..)
      * Description: if constantState of two drawables are equal, then Drawables are equal
      * However converse of it is not necessarily true.
      * In case ConstantState's are not equal, their bitmaps are compared.
