@@ -87,8 +87,12 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
      */
     static final String NXP_NFC_EXT_META_DATA =
             "com.nxp.nfc.extensions";
-
-
+    /**
+     * The name of the meta-data element that contains
+     * nxp extended SE information about off host service.
+     */
+    static final String GSMA_EXT_META_DATA =
+            "com.gsma.services.nfc.extensions";
     /**
      * Convenience NFCID2 list
      */
@@ -110,7 +114,6 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
     final HashMap<String, NQAidGroup> mDynamicNQAidGroups;
 
     final HashMap<String, Nfcid2Group> mNfcid2CategoryToGroup;
-
     /**
     * The Drawable of the service banner specified by the Application Dynamically to be stored as byteArray.
     */
@@ -120,6 +123,10 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
      * This says whether the Application can modify the AIDs or not.
      */
     final boolean mModifiable;
+    /**
+    * This field is to control non-aid based routing introduced by GSMA
+    */
+    boolean mAidSupport = true;
 
     /**
      * This says whether the Service is enabled or disabled by the user
@@ -198,6 +205,7 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
         ServiceInfo si = info.serviceInfo;
         XmlResourceParser parser = null;
         XmlResourceParser extParser = null;
+        XmlResourceParser nfcSeExtParser = null;
         try {
             if (onHost) {
                 parser = si.loadXmlMetaData(pm, HostApduService.SERVICE_META_DATA);
@@ -216,6 +224,11 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
                 extParser = si.loadXmlMetaData(pm, NXP_NFC_EXT_META_DATA);
                 if (extParser == null) {
                     Log.d(TAG,"No " + NXP_NFC_EXT_META_DATA +
+                            " meta-data");
+                }
+                nfcSeExtParser = si.loadXmlMetaData(pm, GSMA_EXT_META_DATA);
+                if (nfcSeExtParser == null) {
+                    Log.d(TAG,"No " + GSMA_EXT_META_DATA +
                             " meta-data");
                 }
             }
@@ -437,7 +450,44 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
             }
             mFelicaExtension = new FelicaInfo(null, null);
         }
-    }
+        if (nfcSeExtParser != null)
+        {
+            try{
+                int eventType = nfcSeExtParser.getEventType();
+                final int depth = nfcSeExtParser.getDepth();
+                String seName = null;
+                mAidSupport = true;
+
+                while (eventType != XmlPullParser.START_TAG && eventType != XmlPullParser.END_DOCUMENT) {
+                    eventType = nfcSeExtParser.next();
+                }
+                String tagName = nfcSeExtParser.getName();
+                if (!"extensions".equals(tagName)) {
+                    throw new XmlPullParserException(
+                            "Meta-data does not start with <extensions> tag "+tagName);
+                }
+                while (((eventType = nfcSeExtParser.next()) != XmlPullParser.END_TAG || nfcSeExtParser.getDepth() > depth)
+                        && eventType != XmlPullParser.END_DOCUMENT) {
+                    tagName = nfcSeExtParser.getName();
+
+                    if (eventType == XmlPullParser.START_TAG && "se-id".equals(tagName) ) {
+                        // Get name of eSE
+                        seName = nfcSeExtParser.getAttributeValue(null, "name");
+                        if (seName == null  || (!seName.equalsIgnoreCase(SECURE_ELEMENT_ESE) && !seName.equalsIgnoreCase(SECURE_ELEMENT_UICC)
+                                && !seName.equalsIgnoreCase(SECURE_ELEMENT_UICC2)) ) {
+                            throw new XmlPullParserException("Unsupported se name: " + seName);
+                        }
+                    }
+                    if (eventType == XmlPullParser.START_TAG && "AID-based".equals(tagName) ) {
+                        // Get aid support
+                        mAidSupport = nfcSeExtParser.getAttributeBooleanValue(0, true);
+                    }
+                }
+            } finally {
+                nfcSeExtParser.close();
+            }
+        }
+ }
 
     public void writeToXml(XmlSerializer out) throws IOException {
         out.attribute(null, "description", mDescription);
@@ -540,7 +590,9 @@ public class NQApduServiceInfo extends ApduServiceInfo implements Parcelable {
         aidTotalNum = getTotalAidNumCategory(CardEmulation.CATEGORY_OTHER);
         return aidTotalNum;
     }
-
+    public boolean isNonAidBasedRoutingSupported(){
+        return mAidSupport;
+    }
     private int getTotalAidNumCategory( String category) {
         ArrayList<NQAidGroup> nqAidGroups = new ArrayList<NQAidGroup>();
         List<String> aids;
