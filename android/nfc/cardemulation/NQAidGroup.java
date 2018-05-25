@@ -58,7 +58,7 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
     /**
      * Mapping from category to static APDU pattern group
      */
-    protected ArrayList<ApduPatternGroup> mStaticNQApduPatternGroups;
+    protected ArrayList<ApduPatternGroup> mStaticNQApduPatternGroups = null;
 
     /**
      * Creates a new NQAidGroup object.
@@ -106,6 +106,11 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
      * @return An AidGroup object to be serialized via parcel
      */
     public AidGroup createAidGroup() {
+        if(this.getAids() == null || this.getAids().isEmpty()){
+          Log.d(TAG, "Empty aid group creation");
+          return new AidGroup(this.getCategory(), this.getDescription());
+        }
+        Log.d(TAG, "Non Empty aid group creation");
         return new AidGroup(this.getAids(), this.getCategory());
     }
 
@@ -120,11 +125,25 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
      */
     public ArrayList<ApduPattern> getApduPatternList() {
         final ArrayList<ApduPattern> apdulist = new ArrayList<ApduPattern>();
-        for (ApduPatternGroup group : mStaticNQApduPatternGroups) {
-            for(ApduPattern apduPattern : group.getApduPattern()) {
-                apdulist.add(apduPattern);
-            }
+        if(apdulist == null || mStaticNQApduPatternGroups == null){
+          return null;
         }
+        try
+        {
+          for (ApduPatternGroup group : mStaticNQApduPatternGroups) {
+            if(group == null){
+              continue;
+            }
+            for(ApduPattern apduPattern : group.getApduPattern()) {
+             if(apduPattern == null){
+                continue;
+             }
+              apdulist.add(apduPattern);
+            }
+          }
+        }catch(NullPointerException e){
+          e.printStackTrace();
+       }
         return apdulist;
     }
 
@@ -170,7 +189,11 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
                 source.readStringList(aidList);
             }
             String nqdescription = source.readString();
-            return new NQAidGroup(aidList, category, nqdescription);
+            if(aidList == null || aidList.size() == 0){
+              return new NQAidGroup(category, nqdescription);
+            }
+            else
+             return new NQAidGroup(aidList, category, nqdescription);
         }
 
         @Override
