@@ -26,7 +26,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.Bitmap;
 import android.util.Log;
-
 import com.gsma.services.utils.InsufficientResourcesException;
 import com.gsma.services.nfc.OffHostService;
 
@@ -256,7 +255,13 @@ public class OffHostService {
             for(String aid :mGroup.getAidList()) {
                 aidList.add(aid);
             }
-            mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList, mGroup.getCategory(), mGroup.getDescription());
+
+            if(aidList == null || aidList.size() == 0) {
+              mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(mGroup.getCategory(), mGroup.getDescription());
+            }else {
+              mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList, mGroup.getCategory(), mGroup.getDescription());
+            }
+
             mApduAidGroupList.add(mCeAidGroup);
         }
     return mApduAidGroupList;
