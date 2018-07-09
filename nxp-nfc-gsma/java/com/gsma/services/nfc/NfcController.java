@@ -372,10 +372,11 @@ public class NfcController {
         for(com.gsma.services.nfc.AidGroup mGroup : mAidGroups) {
             if(!mGroup.getAidList().isEmpty())
             {
+                mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(mGroup.getCategory(), mGroup.getDescription());
+                aidList = mCeAidGroup.getAids();
                 for(String aid :mGroup.getAidList()) {
                     aidList.add(aid);
                 }
-                mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList,mGroup.getCategory(), mGroup.getDescription());
                 mApduAidGroupList.add(mCeAidGroup);
             }
         }
