@@ -26,7 +26,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.Bitmap;
 import android.util.Log;
-
 import com.gsma.services.utils.InsufficientResourcesException;
 import com.gsma.services.nfc.OffHostService;
 
@@ -137,7 +136,7 @@ public class OffHostService {
                         for (int counter = 0, max = f.length; counter < max; counter++) {
                             int resId = f[counter].getInt(null);
                             Drawable d = pManager.getResourcesForApplication(packName).getDrawable(resId,null);
-                            if ( areDrawablesEqual(banner,d) ) {
+                            if ( areDrawablesEqual(banner, d) ) {
                                 mBannerResId = resId;
                                 mBanner = d;
                                 Log.d(TAG, "setBanner() Resources GOT THE DRAWABLE On loop "
@@ -151,7 +150,7 @@ public class OffHostService {
             }
         } catch (Exception e) {
             Log.d(TAG, "setBanner() Resources exception ..." + e.getMessage());
-
+            e.printStackTrace();
         }
         if(mBannerResId == 0x00) {
             Log.d(TAG, "bannerId  set to 0");
@@ -256,7 +255,13 @@ public class OffHostService {
             for(String aid :mGroup.getAidList()) {
                 aidList.add(aid);
             }
-            mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList, mGroup.getCategory(), mGroup.getDescription());
+
+            if(aidList == null || aidList.size() == 0) {
+              mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(mGroup.getCategory(), mGroup.getDescription());
+            }else {
+              mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList, mGroup.getCategory(), mGroup.getDescription());
+            }
+
             mApduAidGroupList.add(mCeAidGroup);
         }
     return mApduAidGroupList;

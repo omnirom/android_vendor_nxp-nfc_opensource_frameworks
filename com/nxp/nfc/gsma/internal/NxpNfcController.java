@@ -306,6 +306,9 @@ public class NxpNfcController {
         PackageManager pm = mContext.getPackageManager();
         try {
             apduServices = mNfcControllerService.getOffHostServices(userId, packageName);
+            if((apduServices == null)||(apduServices.isEmpty())){
+                return null;
+            }
         } catch (RemoteException e) {
             Log.e(TAG, "getOffHostServices failed", e);
             return null;
