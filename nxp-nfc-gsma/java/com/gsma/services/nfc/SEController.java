@@ -61,7 +61,7 @@ public class SEController {
      * @throws IOException
      */
     @Deprecated
-    public static void getDefaultController(Context context, SEController.Callbacks cb) throws IOException {
+    public static void getDefaultController(Context context, SEController.Callbacks cb) {
         throw new UnsupportedOperationException();
     }
 

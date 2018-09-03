@@ -25,6 +25,7 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.Bitmap;
+import dalvik.system.DexClassLoader;
 import android.nfc.cardemulation.CardEmulation;
 import android.util.Log;
 
@@ -256,7 +257,11 @@ public class OffHostService {
             for(String aid :mGroup.getAidList()) {
                 aidList.add(aid);
             }
-            mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList, mGroup.getCategory(), mGroup.getDescription());
+            if(aidList == null || aidList.size() == 0) {
+              mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(mGroup.getCategory(), mGroup.getDescription());
+            }else {
+              mCeAidGroup = new android.nfc.cardemulation.NQAidGroup(aidList, mGroup.getCategory(), mGroup.getDescription());
+            }
             mApduAidGroupList.add(mCeAidGroup);
         }
     return mApduAidGroupList;

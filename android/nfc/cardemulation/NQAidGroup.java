@@ -50,7 +50,6 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
     /**
      * The maximum number of AIDs that can be present in any one group.
      */
-    public static final int MAX_NUM_AIDS = 256;
 
     static final String TAG = "NQAidGroup";
     final String nqdescription;
@@ -86,14 +85,18 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
    }
 
     public NQAidGroup(AidGroup aid) {
-        this(aid.getAids(), aid.getCategory(), null);
+        this(aid.getAids(), aid.getCategory(), getDescription(aid));
     }
 
     /**
      * @return the decription of this AID group
      */
-    public String getDescription() {
-        return nqdescription;
+    static String getDescription(AidGroup aid) {
+        Field[] fs = aid.getClass().getDeclaredFields();
+        for(Field f : fs) {
+            f.setAccessible(true);
+        }
+        return aid.description;
     }
 
     /**
@@ -103,6 +106,11 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
      * @return An AidGroup object to be serialized via parcel
      */
     public AidGroup createAidGroup() {
+        if(this.getAids() == null || this.getAids().isEmpty()){
+          Log.d(TAG, "Empty aid group creation");
+          return new AidGroup(this.getCategory(), this.getDescription());
+        }
+        Log.d(TAG, "Non Empty aid group creation");
         return new AidGroup(this.getAids(), this.getCategory());
     }
 
@@ -117,28 +125,33 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
      */
     public ArrayList<ApduPattern> getApduPatternList() {
         final ArrayList<ApduPattern> apdulist = new ArrayList<ApduPattern>();
-        for (ApduPatternGroup group : mStaticNQApduPatternGroups) {
-            for(ApduPattern apduPattern : group.getApduPattern()) {
-                apdulist.add(apduPattern);
+        if(apdulist == null || mStaticNQApduPatternGroups == null){
+          return null;
+        }
+        try
+        {
+          for (ApduPatternGroup group : mStaticNQApduPatternGroups) {
+            if(group == null){
+              continue;
             }
+            for(ApduPattern apduPattern : group.getApduPattern()) {
+              if(apduPattern == null){
+                continue;
+            }
+              apdulist.add(apduPattern);
+        }
+    }
+        }catch(NullPointerException e){
+          e.printStackTrace();
         }
         return apdulist;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder out = new StringBuilder("Category: " + category +
-                  ", AIDs:");
-        for (String aid : aids) {
-            out.append(aid);
-            out.append(", ");
-        }
-        return out.toString();
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
+    /**
+      * @return the decription of this AID group.
+      */
+    public String getDescription() {
+        return nqdescription;
     }
 
 
@@ -164,7 +177,10 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
                 source.readStringList(aidList);
             }
             String nqdescription = source.readString();
-            return new NQAidGroup(aidList, category, nqdescription);
+            if(aidList == null || aidList.size() == 0)
+                return new NQAidGroup(category, nqdescription);
+            else
+                return new NQAidGroup(aidList, category, nqdescription);
         }
 
         @Override
@@ -293,6 +309,8 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeString(description);
             dest.writeInt(apduList.size());
+            if (apduList.size() > 0) {
+            }
         }
 
         @Override
@@ -309,6 +327,8 @@ public final class NQAidGroup extends AidGroup implements Parcelable {
                 int listSize = source.readInt();
                 ArrayList<ApduPattern> apduList = new ArrayList<ApduPattern>();
                 ApduPatternGroup apduGroup = new ApduPatternGroup(description);
+                if (listSize > 0) {
+                }
                 return apduGroup;
             }
 

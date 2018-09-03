@@ -60,8 +60,7 @@ public class NxpNfcController {
     public static final int PROTOCOL_ISO_DEP=0x10;
     private static final int MW_PROTOCOL_MASK_ISO_DEP = 0x08;
 
-    static final String TAG = "NxpNfcControllerFramework";
-    static final Boolean DBG = true;
+    static final String TAG = "NxpNfcController";
 
     /** Battery of the handset is in "Operational" mode*/
     public static final int BATTERY_OPERATIONAL_STATE=0x01;
@@ -100,8 +99,7 @@ public class NxpNfcController {
          * Called when process for enabling the NFC Controller is finished.
          * @hide
          */
-        public void onGetOffHostService(boolean isLast, boolean isDefault,
-                String description, String seName,int bannerResId,
+        public void onGetOffHostService(boolean isLast, String description, String seName, int bannerResId,
                 List<String> dynamicAidGroupDescriptions,
                 List<android.nfc.cardemulation.AidGroup> dynamicAidGroups);
 
@@ -184,6 +182,14 @@ public class NxpNfcController {
     }
 
     /**
+      * By default HCE is available on NFC stack
+      */
+    public boolean isHostCardEmulationEnabled() {
+        Log.d(TAG, "isHostCardEmulationEnabled():enter");
+        return true;
+    }
+
+   /**
      * Converting from apdu service to off host service.
      * return Off-Host service object
      */
@@ -208,7 +214,7 @@ public class NxpNfcController {
         int bannerId = apduService.getBannerId();
         banner = apduService.loadBanner(pm);
         int userId = apduService.getUid();
-        List<String> ApduAids = apduService.getAids();
+        ArrayList<String> ApduAids = apduService.getAids();
         mService =  new NxpOffHostService(userId,description, sEname, resolveInfo.serviceInfo.packageName,
                 resolveInfo.serviceInfo.name, modifiable);
         if(modifiable) {
@@ -288,12 +294,12 @@ public class NxpNfcController {
             result = mNfcControllerService.deleteOffHostService(userId, packageName, apduService);
         } catch (RemoteException e) {
             Log.e(TAG, "Exception:deleteOffHostService failed", e);
-            result = false;
         }
         if(result != true) {
-            Log.e(TAG, "GSMA: deleteOffHostService failed");
+            Log.d(TAG, "GSMA: deleteOffHostService failed");
+            return false;
         }
-        return result;
+        return true;
     }
 
     /**
@@ -337,7 +343,7 @@ public class NxpNfcController {
             mService = ConvertApduServiceToOffHostService(pm, apduService);
             return mService;
         }
-        Log.e(TAG, "getDefaultOffHostService: Service is NULL");
+        Log.d(TAG, "getDefaultOffHostService: Service is NULL");
         return null;
     }
 
@@ -356,12 +362,13 @@ public class NxpNfcController {
             }
         } catch (RemoteException e) {
             Log.e(TAG, "Exception:commitOffHostService failed", e);
-            result = false;
+            return false;
         }
         if(result != true) {
-            Log.e(TAG, "GSMA: commitOffHostService Failed");
+            Log.d(TAG, "GSMA: commitOffHostService Failed");
+            return false;
         }
-        return result;
+        return true;
     }
 
 
@@ -372,7 +379,7 @@ public class NxpNfcController {
      */
     public boolean commitOffHostService(String packageName, String seName, String description,
             int bannerResId, int uid, List<String> aidGroupDescriptions,
-            List<android.nfc.cardemulation.AidGroup> aidGroups) {
+            List<android.nfc.cardemulation.NQAidGroup> nqAidGroups) {
 
         boolean result = false;
         int userId = UserHandle.myUserId();
@@ -380,12 +387,8 @@ public class NxpNfcController {
         boolean onHost = false;
         ArrayList<android.nfc.cardemulation.NQAidGroup> staticNQAidGroups  = new ArrayList<NQAidGroup>();
         ArrayList<android.nfc.cardemulation.NQAidGroup> dynamicNQAidGroups = new ArrayList<NQAidGroup>();
-        int i = 0;
-        for(android.nfc.cardemulation.AidGroup aidg : aidGroups) {
-            android.nfc.cardemulation.NQAidGroup nqAidg = new NQAidGroup(aidg.getAids(), aidg.getCategory(), aidGroupDescriptions.get(i++));
-            dynamicNQAidGroups.add(nqAidg);
-        }
-        if(DBG) Log.d(TAG, "aidGroups.size() " + aidGroups.size());
+      
+        dynamicNQAidGroups.addAll(nqAidGroups);
         boolean requiresUnlock = false;
         int seId = 0;
         int powerstate = -1;
@@ -433,13 +436,14 @@ public class NxpNfcController {
                 result = mNfcControllerService.commitOffHostService(userId, packageName, seName, newService);
             }
         } catch (RemoteException e) {
-            Log.e(TAG, "Exception:commitOffHostService failed " + e.getMessage());
-            result = false;
+            Log.e(TAG, "Exception:commitOffHostService failed", e);
+            return false;
         }
         if(result != true) {
-            Log.w(TAG, "GSMA: commitOffHostService Failed");
+            Log.d(TAG, "GSMA: commitOffHostService Failed");
+            return false;
         }
-        return result;
+        return true;
     }
 
     /**
@@ -447,28 +451,21 @@ public class NxpNfcController {
      * return true or false
      */
     public boolean deleteOffHostService(String packageName, String seName) {
-        Log.d(TAG, "deleteOffHostService: " + packageName + " " + seName);
+
         boolean result = false;
         int userId = UserHandle.myUserId();
 
-        NQApduServiceInfo nqapdu = mSeNameApduService.get(seName);
-        if(nqapdu == null) {
-            Log.d(TAG, "delteOffHostService() not found");
-            return result;
-        } else {
-            Log.d(TAG, "deleteOffHostService() found " + nqapdu.toString());
-        }
 
         try {
-            result = mNfcControllerService.deleteOffHostService(userId, packageName, nqapdu);
+            result = mNfcControllerService.deleteOffHostService(userId, packageName, mSeNameApduService.get(seName));
         } catch (RemoteException e) {
             Log.e(TAG, "Exception:deleteOffHostService failed", e);
         }
         if(result != true) {
-            Log.w(TAG, "GSMA: deleteOffHostService failed");
-            return result;
+            Log.d(TAG, "GSMA: deleteOffHostService failed");
+            return false;
         }
-        return result;
+        return true;
     }
 
     /**
@@ -479,51 +476,41 @@ public class NxpNfcController {
 
         int userId = UserHandle.myUserId();
         boolean isLast = false;
-        boolean isDefault = false;
         String seName = null;
         int seId=0;
 
         List<NQApduServiceInfo> apduServices = new ArrayList<NQApduServiceInfo>();
         try {
             apduServices = mNfcControllerService.getOffHostServices(userId, packageName);
-            NQApduServiceInfo defaultApduService = mNfcControllerService.getDefaultOffHostService(userId, packageName);
 
             for(int i =0; i< apduServices.size(); i++) {
 
                 if( i == apduServices.size() - 1 ) {
                     isLast = true;
                 }
-                if( defaultApduService != null && apduServices.get(i).equals(defaultApduService)) {
-                    isDefault = true;
-                }
 
                 seId = apduServices.get(i).getSEInfo().getSeId();
-                if( seId == -1) {
-                    Log.e(TAG,"Wrong SE ID (-1)");
-                    continue;
-                }
-                Log.e(TAG, " SE ID: " + seId);
                 if (NxpConstants.UICC_ID_TYPE == seId) {
-                    seName = "SIM";
+                    seName = "SIM1";
                 } else if (NxpConstants.UICC2_ID_TYPE == seId) {
-                    seName = "SIM";
+                    seName = "SIM2";
+                } else if (NxpConstants.SMART_MX_ID_TYPE == seId) {
+                    seName = "eSE";
                 } else {
+                    seName = null;
                     Log.e(TAG,"Wrong SE ID");
                 }
 
-                if(DBG) Log.d(TAG, "getOffHostServices() : seName: " +seName + " apduServices.get(" + i + ").toString(): "
-                        + apduServices.get(i).toString());
-
+                Log.d(TAG, "getOffHostServices: seName = " + seName);
                 ArrayList<String> groupDescription = new ArrayList<String>();
                 for (NQAidGroup nqaidGroup : apduServices.get(i).getNQAidGroups()) {
                     groupDescription.add(nqaidGroup.getDescription());
                 }
 
-                callbacks.onGetOffHostService(isLast, isDefault, apduServices.get(i).getDescription(), seName, apduServices.get(i).getBannerId(),
+                callbacks.onGetOffHostService(isLast, apduServices.get(i).getDescription(), seName, apduServices.get(i).getBannerId(),
                         groupDescription,
                         apduServices.get(i).getAidGroups());
 
-                mSeNameApduService.put(seName, apduServices.get(i));
 
             }
         } catch (RemoteException e) {
@@ -544,30 +531,29 @@ public class NxpNfcController {
 
         NQApduServiceInfo apduService;
         boolean isLast = true;
-        boolean isDefault = true;
         int userId = UserHandle.myUserId();
         String seName = null;
         int seId=0;
         try {
             apduService = mNfcControllerService.getDefaultOffHostService(userId, packageName);
             seId = apduService.getSEInfo().getSeId();
-	    Log.e(TAG," SE ID: " + seId);
             if (NxpConstants.UICC_ID_TYPE == seId) {
-                seName = "SIM";
+                seName = "SIM1";
             } else if (NxpConstants.UICC2_ID_TYPE == seId) {
-                seName = "SIM";
+                seName = "SIM2";
+            } else if (NxpConstants.SMART_MX_ID_TYPE== seId) {
+                seName = "eSE";
             } else {
                 Log.e(TAG,"Wrong SE ID");
             }
-
-            if(DBG) Log.d(TAG, "getDefaultOffHostService: seName: " + seName + " apduService.toString():" + apduService.toString());
+            Log.d(TAG, "getDefaultOffHostService: seName = " + seName);
 
             ArrayList<String> groupDescription = new ArrayList<String>();
             for (NQAidGroup nqaidGroup : apduService.getNQAidGroups()) {
                 groupDescription.add(nqaidGroup.getDescription());
             }
 
-            callbacks.onGetOffHostService(isLast, isDefault, apduService.getDescription(), seName, apduService.getBannerId(),
+            callbacks.onGetOffHostService(isLast, apduService.getDescription(), seName, apduService.getBannerId(),
                     groupDescription,
                     apduService.getAidGroups());
         } catch (RemoteException e) {
