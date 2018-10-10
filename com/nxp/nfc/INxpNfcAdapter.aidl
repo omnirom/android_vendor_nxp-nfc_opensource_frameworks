@@ -1,5 +1,5 @@
  /*
-  * Copyright (C) 2015 NXP Semiconductors
+  * Copyright (C) 2015-2018 NXP Semiconductors
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -16,11 +16,7 @@
 package com.nxp.nfc;
 
 
-import com.nxp.nfc.INxpNfcDta;
-import com.nxp.nfc.INxpNfcAccessExtras;
-import com.nxp.nfc.INxpNfcAdapterExtras;
 import com.nxp.nfc.INfcVzw;
-import com.nxp.intf.IeSEClientServicesAdapter;
 import com.nxp.nfc.gsma.internal.INxpNfcController;
 
 /**
@@ -29,22 +25,10 @@ import com.nxp.nfc.gsma.internal.INxpNfcController;
 interface INxpNfcAdapter
 {
 
-    INxpNfcDta getNfcDtaInterface();
-    INxpNfcAccessExtras getNxpNfcAccessExtrasInterface(in String pkg);
     INfcVzw getNfcVzwInterface();
-    INxpNfcAdapterExtras getNxpNfcAdapterExtrasInterface();
     INxpNfcController getNxpNfcControllerInterface();
-    int[] getSecureElementList(String pkg);
-    int getSelectedSecureElement(String pkg);
-    int selectSecureElement(String pkg,int seId);
-    int deselectSecureElement(String pkg);
-    void storeSePreference(int seId);
     int setEmvCoPollProfile(boolean enable, int route);
-    void MifareDesfireRouteSet(int routeLoc, boolean fullPower, boolean lowPower, boolean noPower);
     void DefaultRouteSet(int routeLoc, boolean fullPower, boolean lowPower, boolean noPower);
-    void MifareCLTRouteSet(int routeLoc, boolean fullPower, boolean lowPower, boolean noPower);
-    IeSEClientServicesAdapter getNfcEseClientServicesAdapterInterface();
-    int getSeInterface(int type);
     byte[]  getFWVersion();
     Map getServicesAidCacheSize(int userId, String category);
     int getMaxAidRoutingTableSize();
@@ -52,4 +36,13 @@ interface INxpNfcAdapter
     int[] getActiveSecureElementList(String pkg);
     int updateServiceState(int userId , in Map serviceState);
     int setConfig(String configs , String pkg);
+    byte[] readerPassThruMode(byte status, byte modulationTyp);
+    byte[] transceiveAppData(in byte[] data);
+    int mPOSSetReaderMode(String pkg, boolean on);
+    boolean mPOSGetReaderMode(String pkg);
+    void stopPoll(String pkg, int mode);
+    void startPoll(String pkg);
+    int nfcSelfTest(String pkg, int type);
+    int selectUicc(int uiccSlot);
+    int getSelectedUicc();
 }

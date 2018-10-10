@@ -35,10 +35,10 @@ import android.util.Log;
 import android.view.View.OnClickListener;
 import android.content.DialogInterface;
 import android.app.Activity;
+import com.nxp.nfc.gsma.internal.NxpHandset;
 import com.nxp.nfc.gsma.internal.NxpNfcController;
 import com.nxp.nfc.gsma.internal.NxpNfcController.NxpCallbacks;
 import com.nxp.nfc.gsma.internal.NxpOffHostService;
-import com.nxp.nfc.gsma.internal.NxpHandset;
 import com.gsma.services.utils.InsufficientResourcesException;
 import android.os.UserHandle;
 /**
@@ -213,8 +213,9 @@ public class NfcController {
      * @deprecated <a style="color:#FF0000">When Host Card Emulation (HCE) is supported</a>
      */
     @Deprecated
-    public boolean isCardEmulationEnabled() throws Exception {
-        throw new InsufficientResourcesException("Host Card Emulation (HCE) is supported");
+    public boolean isCardEmulationEnabled() {
+        Log.d(TAG, "isCardEmulationEnabled():enter");
+        return mNxpNfcController.isHostCardEmulationEnabled();
     }
 
     /**
@@ -233,9 +234,13 @@ public class NfcController {
      * @deprecated <a style="color:#FF0000">When Host Card Emulation (HCE) is supported</a>
      */
     @Deprecated
-    public void enableCardEmulationMode(NfcController.Callbacks cb) throws Exception {
-         throw new InsufficientResourcesException("Host Card Emulation (HCE) is supported");
-
+    public void enableCardEmulationMode(NfcController.Callbacks cb) {
+        Log.d(TAG, "enableCardEmulationMode():enter");
+        if(!isEnabled()) {
+            throw new IllegalStateException("enableCardEmulationMode():nfcc not enabled");
+        } else {
+            throw new SecurityException("enableCardEmulationMode():app not allowed to use this api");
+        }
     }
 
     /**
@@ -253,8 +258,9 @@ public class NfcController {
      * @deprecated <a style="color:#FF0000">When Host Card Emulation (HCE) is supported</a>
      */
     @Deprecated
-    public void disableCardEmulationMode(NfcController.Callbacks cb) throws Exception {
-        throw new InsufficientResourcesException("Host Card Emulation (HCE) is supported");
+    public void disableCardEmulationMode(NfcController.Callbacks cb) {
+        Log.d(TAG, "disableCardEmulationMode():enter");
+        throw new SecurityException("disableCardEmulationMode():app not allowed to use this api");
     }
 
     /**

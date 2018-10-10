@@ -2,7 +2,7 @@
 *
 *  The original Work has been changed by NXP Semiconductors.
 *
-*  Copyright (C) 2013-2014 NXP Semiconductors
+*  Copyright (C) 2013-2018 NXP Semiconductors
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -88,40 +88,27 @@ public final class NxpConstants {
     static final byte PN553_FW_ROM_VER = 0x11;
 
     /**
+     * mpos mode status
+     */
+    public static final int MPOS_STATUS_SUCCESS = 0x00;
+
+    public static final int MPOS_STATUS_BUSY = 0xEB;
+
+    public static final int MPOS_STATUS_REJECTED = 0x01;
+
+    /**
+     * parameter for configuring RF poll
+     */
+    public static final int LOW_POWER = 0x00;
+
+    public static final int ULTRA_LOW_POWER = 0x01;
+
+    /**
      * Broadcast Action: Multiple card presented to emvco reader.
      */
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
     public static final String ACTION_EMVCO_MULTIPLE_CARD_DETECTED =
             "com.nxp.action.EMVCO_MULTIPLE_CARD_DETECTED";
-
-    /**
-     * Broadcast Action: a transaction with a secure element has been detected.
-     *
-     * Always contains the extra field
-     * {@link com.nxp.nfc.NxpConstants#EXTRA_AID} and {@link com.nxp.nfc.NxpConstants#EXTRA_SOURCE}
-     *
-     */
-    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
-    public static final String ACTION_TRANSACTION_DETECTED =
-            "com.nxp.action.TRANSACTION_DETECTED";
-
-    /**
-     * Mandatory byte array extra field in
-     * {@link com.nxp.nfc.NxpConstants#ACTION_TRANSACTION_DETECTED}.
-     * <p>
-     * Contains the AID of the applet involved in the transaction.
-     *
-     */
-    public static final String EXTRA_AID = "com.nxp.extra.AID";
-
-    /**
-     * Mandatory byte array extra field in
-     * {@link com.nxp.nfc.NxpConstants#ACTION_TRANSACTION_DETECTED}.
-     * <p>
-     * Contains the extra data of the applet involved in the transaction.
-     *
-     */
-    public static final String EXTRA_DATA = "com.nxp.extra.DATA";
 
     /**
      * Broadcast Action: a connectivity event coming from the UICC/ESE
@@ -149,42 +136,42 @@ public final class NxpConstants {
      *
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
-    public static final String ACTION_SWP_READER_REQUESTED = "com.nxp.nfc_extras.ACTION_SWP_READER_REQUESTED";
+    public static final String ACTION_NFC_MPOS_READER_MODE_START_SUCCESS = "com.nxp.nfc_extras.action.NFC_MPOS_READER_MODE_START_SUCCESS";
 
     /**
      * Intent received when the SWP Reader is Requested by Application
      *
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
-    public static final String ACTION_SWP_READER_REQUESTED_FAILED = "com.nxp.nfc_extras.ACTION_SWP_READER_REQUESTED_FAILED";
-
-   /**
-     * Intent received when the SWP Reader is connected to card.
-     *
-     */
-    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
-    public static final String ACTION_SWP_READER_ACTIVATED = "com.nxp.nfc_extras.ACTION_SWP_READER_ACTIVATED";
+    public static final String ACTION_NFC_MPOS_READER_MODE_START_FAIL = "com.nxp.nfc_extras.action.NFC_MPOS_READER_MODE_START_FAIL";
 
     /**
      * Intent received when the SWP Reader is disconnected from card.
      *
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
-    public static final String ACTION_SWP_READER_DEACTIVATED = "com.nxp.nfc_extras.ACTION_SWP_READER_DEACTIVATED";
-
-    /**
-     * Intent received when the SWP Reader is started and ready to transcation.
-     *
-     */
-    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
-    public static final String ACTION_SWP_READER_TAG_PRESENT = "com.nxp.nfc_extras.ACTION_SWP_READER_TAG_PRESENT";
+    public static final String ACTION_NFC_MPOS_READER_MODE_STOP_SUCCESS = "com.nxp.nfc_extras.action.NFC_MPOS_READER_MODE_STOP_SUCCESS";
 
     /**
      * Intent received when the SWP Reader transcation is done.
      *
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
-    public static final String ACTION_SWP_READER_TAG_REMOVE = "com.nxp.nfc_extras.ACTION_SWP_READER_TAG_REMOVE";
+    public static final String ACTION_NFC_MPOS_READER_MODE_REMOVE_CARD = "com.nxp.nfc_extras.action.NFC_MPOS_READER_MODE_REMOVE_CARD";
+
+    /**
+     * Intent received when the SWP Reader gets timeout.
+     *
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_NFC_MPOS_READER_MODE_TIMEOUT = "com.nxp.nfc_extras.action.NFC_MPOS_READER_MODE_TIMEOUT";
+
+    /**
+     * Intent received when the SWP Reader needs to restart.
+     *
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_NFC_MPOS_READER_MODE_RESTART = "com.nxp.nfc_extras.action.NFC_MPOS_READER_MODE_RESTART";
 
 
     public static final String ACTION_ROUTING_TABLE_FULL = "nfc.intent.action.AID_ROUTING_TABLE_FULL";
@@ -192,12 +179,10 @@ public final class NxpConstants {
     public static final String PERMISSIONS_NFC = "android.permission.NFC";
 
     public static final String ACTION_MULTI_EVT_TRANSACTION = "com.gsma.services.nfc.action.TRANSACTION_EVENT";
-    public static final String ACTION_CHECK_CERT = "org.simalliance.openmobileapi.service.ACTION_CHECK_CERT";
     public static final String ACTION_CHECK_X509 = "org.simalliance.openmobileapi.service.ACTION_CHECK_X509";
     public static final String SET_PACKAGE_NAME = "org.simalliance.openmobileapi.service";
-    public static final String EXTRA_SE_NAME = "org.simalliance.openmobileapi.service.EXTRA_SE_NAME";
-    public static final String EXTRA_PKG = "org.simalliance.openmobileapi.service.EXTRA_PKG";
-    public static final String EXTRA_RESULT = "org.simalliance.openmobileapi.service.EXTRA_RESULT";
+    public static final String EXTRA_PKG = "org.simalliance.openmobileapi.service.extra.EXTRA_PKG";
+    public static final String EXTRA_RESULT = "org.simalliance.openmobileapi.service.extra.EXTRA_RESULT";
 
     public static final String ACTION_CHECK_X509_RESULT = "org.simalliance.openmobileapi.service.ACTION_CHECK_X509_RESULT";
     public static final String PERMISSIONS_TRANSACTION_EVENT = "com.gsma.services.nfc.permission.TRANSACTION_EVENT";
@@ -206,6 +191,7 @@ public final class NxpConstants {
     public static final String EXTRA_GSMA_PREV_PAYMENT_COMPONENT = "com.gsma.services.nfc.extra.PREV_PAYMENT_COMPONENT";
     public static final String ACTION_GSMA_ENABLE_NFC = "com.gsma.services.nfc.action.ENABLE_NFC";
     public static final String ACTION_GSMA_ENABLE_SET_FLAG = "com.gsma.services.nfc.action.ENABLE_NFC_SET_FALG";
+    public static final String CAT_ACTIVATE_NOTIFY_ACTION = "org.codeaurora.intent.action.stk.activate_notify";
 
     /**
      * Indicates the states of an APDU service.
@@ -216,5 +202,23 @@ public final class NxpConstants {
     public static final int SERVICE_STATE_ENABLING  = 2;
     public static final int SERVICE_STATE_DISABLING = 3;
 
-
+    /**
+     * NFC self test Parameter IDs defined by NXP NFC.
+     */
+    /**
+     *@hide
+     */
+    public static final int TEST_TYPE_RF_ON = 0x00;
+    /**
+     *@hide
+     */
+    public static final int TEST_TYPE_RF_OFF = 0x01;
+    /**
+     *@hide
+     */
+    public static final int TEST_TYPE_TRANSAC_A = 0x02;
+    /**
+     *@hide
+     */
+    public static final int TEST_TYPE_TRANSAC_B = 0x03;
 }

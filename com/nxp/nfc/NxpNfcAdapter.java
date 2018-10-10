@@ -1,27 +1,25 @@
 /*
- * Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
- * Not a Contribution.
- *
- * The original Work has been changed by NXP Semiconductors.
- *
- * Copyright (C) 2013-2014 NXP Semiconductors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+*
+*  The original Work has been changed by NXP Semiconductors.
+*
+*  Copyright (C) 2013-2018 NXP Semiconductors
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*  http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+*
+*/
 package com.nxp.nfc;
 
 import java.util.HashMap;
-import java.util.Arrays;
 import java.util.Map;
 import android.nfc.INfcAdapter;
 import android.nfc.NfcAdapter;
@@ -86,9 +84,7 @@ public final class NxpNfcAdapter {
             nxpAdapter = new NxpNfcAdapter();
             sNfcAdapters.put(adapter, nxpAdapter);
         }
-
         return nxpAdapter;
-
     }
 
     /** get handle to NFC service interface */
@@ -176,58 +172,6 @@ public final class NxpNfcAdapter {
     }
 
     /**
-     * Get the Available Secure Element List
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     *
-     * @throws IOException If a failure occurred during the getAvailableSecureElementList()
-     */
-
-    public String [] getAvailableSecureElementList(String pkg) throws IOException {
-        int [] seList;
-        String [] arr;
-        try{
-            Log.d(TAG, "getAvailableSecureElementList-Enter");
-            seList = sNxpService.getSecureElementList(pkg);
-
-        if (seList!=null && seList.length != 0)
-        {
-            arr= new String[seList.length];
-            Log.v(TAG,"getAvailableSecureElementList-"+ seList);
-            for(int i=0;i<seList.length;i++)
-            {
-                Log.e(TAG, "getAvailableSecure seList[i]" + seList[i]);
-                if(seList[i]==NxpConstants.SMART_MX_ID_TYPE)
-                {
-                    arr[i]= NxpConstants.SMART_MX_ID;
-                }
-                else if(seList[i]==NxpConstants.UICC_ID_TYPE)
-                {
-                    arr[i]= NxpConstants.UICC_ID;
-                }
-                else if(seList[i]==NxpConstants.UICC2_ID_TYPE)
-                {
-                    arr[i]= NxpConstants.UICC2_ID;
-                }
-                else if (seList[i] == ALL_SE_ID_TYPE) {
-                    arr[i]= NxpConstants.ALL_SE_ID;
-                }
-                else {
-                    throw new IOException("No Secure Element selected");
-                }
-            }
-        } else {
-            arr = new String[0];
-        }
-        return arr;
-        }
-        catch (RemoteException e) {
-            Log.e(TAG, "getAvailableSecureElementList: failed", e);
-            attemptDeadServiceRecovery(e);
-            throw new IOException("Failure in deselecting the selected Secure Element");
-        }
-    }
-
-    /**
      * Get the Active Secure Element List
      * <p>Requires {@link android.Manifest.permission#NFC} permission.
      *
@@ -273,120 +217,6 @@ public final class NxpNfcAdapter {
     }
 
     /**
-     * Select the default Secure Element to be used in Card Emulation mode
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     *
-     * @param seId Secure Element ID to be used : {@link NxpConstants#SMART_MX_ID} or {@link NxpConstants#UICC_ID} or {@link NxpConstants#UICC2_ID}
-     * @throws IOException If a failure occurred during the Secure Element selection
-     */
-    public void selectDefaultSecureElement(String pkg, String seId) throws IOException {
-        int [] seList;
-        int seID = 0;
-        boolean seSelected = false;
-
-        if (seId.equals(NxpConstants.UICC_ID)) {
-            seID = NxpConstants.UICC_ID_TYPE;
-        } else if (seId.equals(NxpConstants.UICC2_ID)) {
-            seID= NxpConstants.UICC2_ID_TYPE;
-        } else if (seId.equals(NxpConstants.SMART_MX_ID)) {
-            seID= NxpConstants.SMART_MX_ID_TYPE;
-        } else if (seId.equals(NxpConstants.ALL_SE_ID)) {
-            seID= ALL_SE_ID_TYPE;
-        } else {
-            Log.e(TAG, "selectDefaultSecureElement: wrong Secure Element ID");
-            throw new IOException("selectDefaultSecureElement failed: Wronf Secure Element ID");
-        }
-
-        /* Deselect already selected SE if ALL_SE_ID is not selected*/
-
-        try {
-            if(sNxpService.getSelectedSecureElement(pkg) != seID) {
-                sNxpService.deselectSecureElement(pkg);
-            }
-        } catch (RemoteException e) {
-            Log.e(TAG, "selectDefaultSecureElement: getSelectedSecureElement failed", e);
-            attemptDeadServiceRecovery(e);
-            throw new IOException("Failure in deselecting the selected Secure Element");
-        }
-
-        /* Get the list of the detected Secure Element */
-
-        try {
-            seList = sNxpService.getSecureElementList(pkg);
-            // ADD
-            if (seList != null && seList.length != 0) {
-
-                if (seId.compareTo(NxpConstants.ALL_SE_ID) != 0) {
-                    for (int i = 0; i < seList.length; i++) {
-                        if (seList[i] == seID) {
-                            /* Select the Secure Element */
-                            sNxpService.selectSecureElement(pkg,seID);
-                            seSelected = true;
-                        }
-                    }
-                } else {
-                    /* Select all Secure Element */
-                    sNxpService.selectSecureElement(pkg,seID);
-                    seSelected = true;
-                }
-            }
-
-            // FIXME: This should be done in case of SE selection.
-            if (!seSelected) {
-                if (seId.equals(NxpConstants.UICC_ID)) {
-                    sNxpService.storeSePreference(seID);
-                    throw new IOException("UICC not detected");}
-                else if (seId.equals(NxpConstants.UICC2_ID)) {
-                        sNxpService.storeSePreference(seID);
-                        throw new IOException("UICC2 not detected");
-                } else if (seId.equals(NxpConstants.SMART_MX_ID)) {
-                    sNxpService.storeSePreference(seID);
-                    throw new IOException("SMART_MX not detected");
-                } else if (seId.equals(NxpConstants.ALL_SE_ID)) {
-                    sNxpService.storeSePreference(seID);
-                    throw new IOException("ALL_SE not detected");
-                }
-            }
-        } catch (RemoteException e) {
-            Log.e(TAG, "selectUiccCardEmulation: getSecureElementList failed", e);
-            attemptDeadServiceRecovery(e);
-        }
-    }
-
-    /**
-     * Set listen mode routing table configuration for Mifare Desfire Route.
-     * routeLoc is parameter which fetch the text from UI and compare
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     *
-     * @throws IOException If a failure occurred during Mifare Desfire Route set.
-     */
-    public void MifareDesfireRouteSet(String routeLoc, boolean fullPower, boolean lowPower, boolean noPower)
-            throws IOException {
-        try{
-            int seID=0;
-            boolean result = false;
-            if (routeLoc.equals(NxpConstants.UICC_ID)) {
-            seID = NxpConstants.UICC_ID_TYPE;
-            } else if (routeLoc.equals(NxpConstants.UICC2_ID)) {
-            seID= NxpConstants.UICC2_ID_TYPE;
-            } else if (routeLoc.equals(NxpConstants.SMART_MX_ID)) {
-            seID= NxpConstants.SMART_MX_ID_TYPE;
-            } else if (routeLoc.equals(NxpConstants.HOST_ID)) {
-                seID = NxpConstants.HOST_ID_TYPE;
-            } else {
-                Log.e(TAG, "confMifareDesfireProtoRoute: wrong default route ID");
-                throw new IOException("confMifareProtoRoute failed: Wrong default route ID");
-            }
-            Log.i(TAG, "calling Services");
-            sNxpService.MifareDesfireRouteSet(seID, fullPower, lowPower, noPower);
-            } catch (RemoteException e) {
-            Log.e(TAG, "confMifareDesfireProtoRoute failed", e);
-            attemptDeadServiceRecovery(e);
-            throw new IOException("confMifareDesfireProtoRoute failed");
-            }
-    }
-
-    /**
      * Set listen mode routing table configuration for Default Route.
      * routeLoc is parameter which fetch the text from UI and compare
      * * <p>Requires {@link android.Manifest.permission#NFC} permission.
@@ -418,81 +248,6 @@ public final class NxpNfcAdapter {
     }
 
     /**
-     * Set listen mode routing table configuration for MifareCLTRouteSet.
-     * routeLoc is parameter which fetch the text from UI and compare
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     *
-     * @throws IOException If a failure occurred during Mifare CLT Route set.
-     */
-    public void MifareCLTRouteSet(String routeLoc, boolean fullPower, boolean lowPower, boolean noPower )
-            throws IOException {
-        try {
-            int seID=0;
-            boolean result = false;
-            if (routeLoc.equals(NxpConstants.UICC_ID)) {
-            seID = NxpConstants.UICC_ID_TYPE;
-            } else if (routeLoc.equals(NxpConstants.UICC2_ID)) {
-            seID= NxpConstants.UICC2_ID_TYPE;
-            } else if (routeLoc.equals(NxpConstants.SMART_MX_ID)) {
-            seID= NxpConstants.SMART_MX_ID_TYPE;
-            } else if (routeLoc.equals(NxpConstants.HOST_ID)) {
-            seID = NxpConstants.HOST_ID_TYPE;
-            } else {
-                Log.e(TAG, "confMifareCLT: wrong default route ID");
-                throw new IOException("confMifareCLT failed: Wrong default route ID");
-            }
-            sNxpService.MifareCLTRouteSet(seID, fullPower, lowPower, noPower);
-        } catch (RemoteException e) {
-            Log.e(TAG, "confMifareCLT failed", e);
-            attemptDeadServiceRecovery(e);
-            throw new IOException("confMifareCLT failed");
-        }
-    }
-
-    /**
-     * Helper to create an Nfc Ala object.
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     * @return the NfcAla, or null if no NfcAla exists
-    public NfcAla createNfcAla() {
-         try {
-             return new NfcAla(sNxpService.getNfcAlaInterface());
-         } catch (RemoteException e) {
-             Log.e(TAG, "createNfcAla failed", e);
-             return null;
-         }
-    }*/
-
-    /**
-     * Helper to create an Nfc Dta object.
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     *
-     * @return the NfcDta, or null if no NfcDta exists
-     */
-    public NfcDta createNfcDta() {
-         try {
-             return new NfcDta(sNxpService.getNfcDtaInterface());
-         } catch (RemoteException e) {
-             Log.e(TAG, "createNfcDta failed", e);
-             attemptDeadServiceRecovery(e);
-             return null;
-         }
-    }
-
-    /**
-    * Get the handle to an INxpNfcAccessExtras Interface
-    * @hide
-    */
-    public INxpNfcAccessExtras getNxpNfcAccessExtras(String pkg) {
-        try {
-            return sNxpService.getNxpNfcAccessExtrasInterface(pkg);
-        } catch (RemoteException e) {
-            Log.e(TAG, "getNxpNfcAccessExtras failed", e);
-            attemptDeadServiceRecovery(e);
-            return null;
-        }
-    }
-
-    /**
      * Active the Single Wired Protocol (SWP).
      * <p>Requires {@link android.Manifest.permission#NFC} permission.
      *
@@ -502,54 +257,6 @@ public final class NxpNfcAdapter {
     @Deprecated
     public void activeSwp() throws IOException {
         throw new UnsupportedOperationException();
-    }
-
-   /**
-     * Get the ID of the Secure Element selected
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     *
-     * @return Secure Element ID currently selected
-     * @throws IOException If a failure occurred during the getDefaultSelectedSecureElement()
-     */
-    public String getDefaultSelectedSecureElement(String pkg) throws IOException {
-        int seID = 0;
-
-        /* Get Selected Secure Element */
-        try {
-            seID = sNxpService.getSelectedSecureElement(pkg);
-            if (seID == NxpConstants.UICC_ID_TYPE/*0xABCDF0*/) {
-                return NxpConstants.UICC_ID;
-            } else if (seID == NxpConstants.UICC2_ID_TYPE/*0xABCDF0*/) {
-                    return NxpConstants.UICC2_ID;
-            } else if (seID == NxpConstants.SMART_MX_ID_TYPE/*0xABCDEF*/) {
-                return NxpConstants.SMART_MX_ID;
-            } else if (seID == ALL_SE_ID_TYPE/*0xABCDFE*/) {
-                return NxpConstants.ALL_SE_ID;
-            } else {
-                throw new IOException("No Secure Element selected");
-            }
-        } catch (RemoteException e) {
-            Log.e(TAG, "getSelectedSecureElement failed", e);
-            attemptDeadServiceRecovery(e);
-            throw new IOException("getSelectedSecureElement failed");
-        }
-    }
-
-    /**
-     * deselect the selected Secure Element
-     * <p>Requires {@link android.Manifest.permission#NFC} permission.
-     *
-     * @throws IOException If a failure occurred during the deselction of secure element.
-     */
-    public void deSelectedSecureElement(String pkg) throws IOException {
-        /* deselected Secure Element */
-        try {
-            sNxpService.deselectSecureElement(pkg);
-        } catch (RemoteException e) {
-            Log.e(TAG, "deselectSecureElement failed", e);
-            attemptDeadServiceRecovery(e);
-            throw new IOException("deselectSecureElement failed");
-        }
     }
 
     /**
@@ -654,21 +361,165 @@ public final class NxpNfcAdapter {
             return 0xFF;
         }
     }
-     /**
+
+    /**
+     * This api is called by applications to select the UICC slot. Selected Slot
+     * will be activated for all type of CE from UICC.
+     * <p>Requires {@link android.Manifest.permission#NFC} permission.<ul>
+     * <li>This api shall be called only Nfcservice is enabled.
+     * </ul>
+     * @param  uicc slot number to select
+     * @return whether  the update of configuration is
+     *          success or not.
+     *          0xFF - failure
+     *          0x00 - success
+     * @throws  IOException if any exception occurs during setting the NFC configuration.
+     */
+    public int selectUicc(int uiccSlot) throws IOException {
+        try {
+            return sNxpService.selectUicc(uiccSlot);
+        } catch(RemoteException e) {
+            e.printStackTrace();
+            attemptDeadServiceRecovery(e);
+            return 0xFF;
+        }
+    }
+
+    /**
+     * This api is called by applications to get Selected UICC slot. Selected Slot
+     * will be used for all type of CE from UICC.
+     * <p>Requires {@link android.Manifest.permission#NFC} permission.<ul>
+     * <li>This api shall be called only Nfcservice is enabled.
+     * </ul>
+     * @param  uicc slot number to select
+     * @return whether  the update of configuration is
+     *          success or not.
+     *          0xFF - failure
+     *          0x00 - success
+     * @throws  IOException if any exception occurs during setting the NFC configuration.
+     */
+    public int getSelectedUicc() throws IOException {
+        try {
+            return sNxpService.getSelectedUicc();
+        } catch(RemoteException e) {
+            e.printStackTrace();
+            attemptDeadServiceRecovery(e);
+            return 0xFF;
+        }
+    }
+
+    /**
+     * This is the first API to be called to start or stop the mPOS mode
+     * <p>Requires {@link android.Manifest.permission#NFC} permission.
+     * <li>This api shall be called only Nfcservice is enabled.
+     * <li>This api shall be called only when there are no NFC transactions ongoing
+     * </ul>
+     * @param  pkg package name of the caller
+     * @param  on Sets/Resets the mPOS state.
+     * @return whether the update of state is
+     *          success or busy or fail.
+     *          MPOS_STATUS_BUSY
+     *          MPOS_STATUS_REJECTED
+     *          MPOS_STATUS_SUCCESS
+     * @throws IOException If a failure occurred during reader mode set or reset
+     */
+    public int mPOSSetReaderMode (String pkg, boolean on) throws IOException {
+        try {
+            return sNxpService.mPOSSetReaderMode(pkg, on);
+        } catch(RemoteException e) {
+            Log.e(TAG, "RemoteException in mPOSSetReaderMode (int state): ", e);
+            e.printStackTrace();
+            attemptDeadServiceRecovery(e);
+            throw new IOException("RemoteException in mPOSSetReaderMode (int state)");
+        }
+    }
+
+    /**
+     * This is provides the info whether mPOS mode is activated or not
+     * <p>Requires {@link android.Manifest.permission#NFC} permission.
+     * <li>This api shall be called only Nfcservice is enabled.
+     * <li>This api shall be called only when there are no NFC transactions ongoing
+     * </ul>
+     * @param  pkg package name of the caller
+     * @return TRUE if reader mode is started
+     *          FALSE if reader mode is not started
+     * @throws IOException If a failure occurred during reader mode set or reset
+     */
+    public boolean mPOSGetReaderMode (String pkg) throws IOException {
+        try {
+            return sNxpService.mPOSGetReaderMode(pkg);
+        } catch(RemoteException e) {
+            Log.e(TAG, "RemoteException in mPOSGetReaderMode (): ", e);
+            e.printStackTrace();
+            attemptDeadServiceRecovery(e);
+            throw new IOException("RemoteException in mPOSSetReaderMode ()");
+        }
+    }
+
+    /**
+     * This API is called by application to stop RF discovery
+     * <p>Requires {@link android.Manifest.permission#NFC} permission.
+     * <li>This api shall be called only Nfcservice is enabled.
+     * </ul>
+     * @param  pkg package name of the caller
+     * @param  mode
+     *         LOW_POWER
+     *         ULTRA_LOW_POWER
+     * @return None
+     * @throws IOException If a failure occurred during stop discovery
+    */
+    public void stopPoll(String pkg, int mode) throws IOException {
+        try {
+            sNxpService.stopPoll(pkg, mode);
+        } catch(RemoteException e) {
+            Log.e(TAG, "RemoteException in stopPoll(int mode): ", e);
+            e.printStackTrace();
+            attemptDeadServiceRecovery(e);
+            throw new IOException("RemoteException in stopPoll(int mode)");
+        }
+    }
+
+    /**
+     * This API is called by application to start RF discovery
+     * <p>Requires {@link android.Manifest.permission#NFC} permission.
+     * <li>This api shall be called only Nfcservice is enabled.
+     * </ul>
+     * @param  pkg package name of the caller
+     * @return None
+     * @throws IOException If a failure occurred during start discovery
+    */
+    public void startPoll(String pkg) throws IOException {
+        try {
+            sNxpService.startPoll(pkg);
+        } catch(RemoteException e) {
+            Log.e(TAG, "RemoteException in startPoll(): ", e);
+            e.printStackTrace();
+            attemptDeadServiceRecovery(e);
+            throw new IOException("RemoteException in startPoll()");
+        }
+    }
+    /**
+     * This API is called by application to execute the analog self test
+     * <p>Requires {@link android.Manifest.permission#NFC} permission.
+     * <li>This api shall be called only Nfcservice is enabled.
+     * </ul>
+     * @param  pkg, package name of the caller
+     * @param  type, type of the analog slef test
+     * @return status
+     * @throws IOException If a failure occurred during nfcSelfTest
      * @hide
      */
-    public INxpNfcAdapterExtras getNxpNfcAdapterExtrasInterface(INfcAdapterExtras extras) {
-        if (sNxpService == null || extras == null) {
-            throw new UnsupportedOperationException("You need a context on NxpNfcAdapter to use the "
-                    + " NXP NFC extras APIs");
-        }
-        try {
-            return sNxpService.getNxpNfcAdapterExtrasInterface();
-        } catch (RemoteException e) {
-        Log.e(TAG, "getNxpNfcAdapterExtrasInterface failed", e);
+    public int nfcSelfTest(String pkg, int type) throws IOException {
+      int status = 0xFF;
+      try {
+        status = sNxpService.nfcSelfTest(pkg, type);
+      } catch (RemoteException e) {
+        Log.e(TAG, "RemoteException in nfcSelfTest(): ", e);
+        e.printStackTrace();
         attemptDeadServiceRecovery(e);
-            return null;
-        }
+        throw new IOException("RemoteException in nfcSelfTest()");
+      }
+      return status;
     }
     /**
      * This api is called by applications to get the maximum routing table for AID registration
@@ -702,5 +553,24 @@ public final class NxpNfcAdapter {
             attemptDeadServiceRecovery(e);
             return 0x00;
         }
+    }
+
+    public byte[] readerPassThruMode(byte status, byte modulationTyp)
+        throws IOException {
+      try {
+        return sNxpService.readerPassThruMode(status, modulationTyp);
+      } catch (RemoteException e) {
+        Log.e(TAG, "Remote exception in readerPassThruMode(): ", e);
+        throw new IOException("Remote exception in readerPassThruMode()");
+      }
+    }
+
+    public byte[] transceiveAppData(byte[] data) throws IOException {
+      try {
+        return sNxpService.transceiveAppData(data);
+      } catch (RemoteException e) {
+        Log.e(TAG, "RemoteException in transceiveAppData(): ", e);
+        throw new IOException("RemoteException in transceiveAppData()");
+      }
     }
 }
