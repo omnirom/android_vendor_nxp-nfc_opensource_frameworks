@@ -53,7 +53,7 @@ LOCAL_JAVA_LIBRARIES:= com.nxp.nfc.nq
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_DROIDDOC_USE_STANDARD_DOCLET := true
 
-include $(BUILD_DROIDDOC)
+# include $(BUILD_DROIDDOC)
 
 # uncomment for NXP gsma-nfc-service
 # ============================================================
